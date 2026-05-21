@@ -1,0 +1,9 @@
+﻿=== Starting Cleanup ===
+In directory: C:\Users\USER\Desktop\ntp_server\global-sync-station-main
+
+=== Final Directory Listing ===
+backend
+frontend
+.gitignore
+
+README.md exists: False
