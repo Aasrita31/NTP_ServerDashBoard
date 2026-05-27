@@ -12,4 +12,24 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      port: 8080,
+      strictPort: true,
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false,
+          ws: true,
+        },
+        '/ws': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false,
+          ws: true,
+        },
+      },
+    },
+  },
 });

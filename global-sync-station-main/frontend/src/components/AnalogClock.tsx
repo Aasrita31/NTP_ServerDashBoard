@@ -1,35 +1,60 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export interface AnalogClockProps {
   epochMs?: number;
+  displayMs?: number;
 }
 
-export function AnalogClock({ epochMs }: AnalogClockProps) {
-  const [now, setNow] = useState(() => new Date(epochMs ?? Date.now()));
+export function AnalogClock({ epochMs, displayMs }: AnalogClockProps) {
+  const [angles, setAngles] = useState({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+  const animationFrameRef = useRef<number>();
+  const offsetRef = useRef<number>(0);
+
   useEffect(() => {
     const refTime = epochMs ?? Date.now();
-    const offset = refTime - Date.now();
-
-    setNow(new Date(Date.now() + offset));
-
-    const id = setInterval(() => {
-      setNow(new Date(Date.now() + offset));
-    }, 1000);
-
-    return () => clearInterval(id);
+    offsetRef.current = refTime - Date.now();
   }, [epochMs]);
 
-  const utc = {
-    h: now.getUTCHours() % 12,
-    m: now.getUTCMinutes(),
-    s: now.getUTCSeconds(),
+  const calculateAngles = (timeMs: number) => {
+    const date = new Date(timeMs + offsetRef.current);
+    const h = date.getUTCHours() % 12;
+    const m = date.getUTCMinutes();
+    const s = date.getUTCSeconds();
+    const ms = date.getUTCMilliseconds();
+
+    const msAngle = (ms / 1000) * 360;
+    const secAngle = s * 6 + (ms / 1000) * 6;
+    const minAngle = m * 6 + (s / 60) * 6 + (ms / 60000) * 6;
+    const hourAngle = h * 30 + (m / 60) * 30 + (s / 3600) * 30 + (ms / 3600000) * 30;
+
+    return { hour: hourAngle, minute: minAngle, second: secAngle, millisecond: msAngle };
   };
-  const secAngle = utc.s * 6;
-  const minAngle = utc.m * 6 + utc.s * 0.1;
-  const hourAngle = utc.h * 30 + utc.m * 0.5;
+
+  useEffect(() => {
+    if (displayMs !== undefined) {
+      setAngles(calculateAngles(displayMs));
+      return;
+    }
+
+    const animate = () => {
+      setAngles(calculateAngles(Date.now()));
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    setAngles(calculateAngles(Date.now()));
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [displayMs, epochMs]);
+
+  const { hour: hourAngle, minute: minAngle, second: secAngle, millisecond: msAngle } = angles;
 
   return (
-    <div className="relative w-56 h-56">
+    <div className="analog-clock relative w-56 h-56" suppressHydrationWarning>
       {/* Outer glow ring */}
       <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,oklch(0.85_0.18_78/0.4),transparent_40%,oklch(0.85_0.18_78/0.6),transparent_80%)] blur-md animate-spin-slow" />
       {/* Metallic bezel */}
@@ -76,6 +101,10 @@ export function AnalogClock({ epochMs }: AnalogClockProps) {
           {/* Second hand */}
           <div className="absolute left-1/2 top-1/2 origin-bottom" style={{ height: "44%", transform: `translate(-50%,-100%) rotate(${secAngle}deg)` }}>
             <div className="w-px h-full bg-[oklch(0.9_0.25_25)] shadow-[0_0_10px_oklch(0.9_0.25_25)]" />
+          </div>
+          {/* Millisecond hand - ultra-smooth neon cyan */}
+          <div className="absolute left-1/2 top-1/2 origin-bottom" style={{ height: "48%", transform: `translate(-50%,-100%) rotate(${msAngle}deg)`, transition: "none" }}>
+            <div className="w-0.5 h-full bg-gradient-to-t from-cyan-400 via-cyan-300 to-cyan-200 shadow-[0_0_8px_oklch(0.85_0.2_80),0_0_16px_oklch(0.85_0.2_80),inset_0_0_4px_oklch(0.95_0.25_80)]" style={{ opacity: 0.9 }} />
           </div>
           {/* Center cap */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-cyan-glow shadow-[0_0_12px_oklch(0.85_0.18_78)] border border-white/60" />

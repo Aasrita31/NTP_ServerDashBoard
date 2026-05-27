@@ -127,6 +127,8 @@ export function CountryCard(p: CountryCardProps & { compareMode?: boolean; onCom
   const flagUrl = `https://flagcdn.com/w160/${iso}.png`;
   const flagUrlLarge = `https://flagcdn.com/w320/${iso}.png`;
 
+  const waveDelay = `${(code.charCodeAt(0) + code.charCodeAt(code.length - 1)) % 7 * 0.18}s`;
+
   const tintStyle = accent
     ? { background: `linear-gradient(135deg, ${accent}26, ${accent}0d 60%, transparent)` }
     : undefined;
@@ -152,13 +154,13 @@ export function CountryCard(p: CountryCardProps & { compareMode?: boolean; onCom
         setOpen(true);
       }}
       className={
-        `glass glass-hover rounded-xl p-5 relative overflow-hidden group text-left w-full focus:outline-none ` +
+        `glass glass-hover country-card rounded-xl p-5 relative overflow-hidden group text-left w-full focus:outline-none ` +
         (compareSelected ? "ring-4 ring-primary/40" : "focus-visible:ring-2 focus-visible:ring-cyan-glow/60")
       }
     >
       {accent && <div className="absolute inset-0 pointer-events-none" style={tintStyle} />}
       <div
-        className="absolute inset-0 opacity-[0.07] group-hover:opacity-[0.14] transition-opacity duration-500 pointer-events-none bg-center bg-cover"
+        className="flag-bg-wave absolute inset-0 opacity-[0.07] group-hover:opacity-[0.14] transition-opacity duration-500 pointer-events-none bg-center bg-cover"
         style={{ backgroundImage: `url(${flagUrlLarge})` }}
       />
 
@@ -171,7 +173,7 @@ export function CountryCard(p: CountryCardProps & { compareMode?: boolean; onCom
         <div className="flex items-center gap-3">
           <div className="flag-wrap relative w-10 h-7 rounded-sm overflow-hidden shadow-[0_0_10px_oklch(0.85_0.18_78/0.35)] ring-1 ring-cyan-glow/40 shrink-0">
             <img src={flagUrl} alt={`${name} flag`} loading="lazy"
-              className="flag-img w-full h-full object-cover" draggable={false} />
+              className="flag-img w-full h-full object-cover" draggable={false} style={{ animationDelay: waveDelay }} />
             <span className="sr-only">{flag}</span>
           </div>
           <div>
@@ -212,7 +214,7 @@ export function CountryCard(p: CountryCardProps & { compareMode?: boolean; onCom
         >
           {accent && <div className="absolute inset-0 pointer-events-none opacity-60" style={tintStyle} />}
           <div
-            className="absolute inset-0 opacity-[0.08] pointer-events-none bg-center bg-cover"
+            className="flag-bg-wave absolute inset-0 opacity-[0.08] pointer-events-none bg-center bg-cover"
             style={{ backgroundImage: `url(${flagUrlLarge})` }}
           />
 
@@ -233,7 +235,7 @@ export function CountryCard(p: CountryCardProps & { compareMode?: boolean; onCom
           <div className="relative flex items-center gap-3 mb-4">
             <div className="flag-wrap relative w-14 h-10 rounded-sm overflow-hidden shadow-[0_0_14px_oklch(0.85_0.18_78/0.5)] ring-1 ring-cyan-glow/50 shrink-0">
               <img src={flagUrlLarge} alt={`${name} flag`}
-                className="flag-img w-full h-full object-cover" draggable={false} />
+                className="flag-img w-full h-full object-cover" draggable={false} style={{ animationDelay: waveDelay }} />
             </div>
             <div>
               <div className="text-base font-bold tracking-wider">{name}</div>

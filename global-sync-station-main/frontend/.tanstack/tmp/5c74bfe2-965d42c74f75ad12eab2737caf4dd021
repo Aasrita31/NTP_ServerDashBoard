@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as OfficeRouteImport } from './routes/office'
 import { Route as NodesRouteImport } from './routes/nodes'
 import { Route as MasterRouteImport } from './routes/master'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as LiveSyncRouteImport } from './routes/live/sync'
 import { Route as LivePacketsRouteImport } from './routes/live/packets'
 import { Route as LiveAlertsRouteImport } from './routes/live/alerts'
@@ -34,11 +33,6 @@ const NodesRoute = NodesRouteImport.update({
 const MasterRoute = MasterRouteImport.update({
   id: '/master',
   path: '/master',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LiveSyncRoute = LiveSyncRouteImport.update({
@@ -78,7 +72,6 @@ const AnalysisDelayRoute = AnalysisDelayRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/master': typeof MasterRoute
   '/nodes': typeof NodesRoute
   '/office': typeof OfficeRoute
@@ -91,7 +84,6 @@ export interface FileRoutesByFullPath {
   '/live/sync': typeof LiveSyncRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/master': typeof MasterRoute
   '/nodes': typeof NodesRoute
   '/office': typeof OfficeRoute
@@ -105,7 +97,6 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/master': typeof MasterRoute
   '/nodes': typeof NodesRoute
   '/office': typeof OfficeRoute
@@ -120,7 +111,6 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/master'
     | '/nodes'
     | '/office'
@@ -133,7 +123,6 @@ export interface FileRouteTypes {
     | '/live/sync'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/master'
     | '/nodes'
     | '/office'
@@ -146,7 +135,6 @@ export interface FileRouteTypes {
     | '/live/sync'
   id:
     | '__root__'
-    | '/'
     | '/master'
     | '/nodes'
     | '/office'
@@ -160,7 +148,6 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   MasterRoute: typeof MasterRoute
   NodesRoute: typeof NodesRoute
   OfficeRoute: typeof OfficeRoute
@@ -194,13 +181,6 @@ declare module '@tanstack/react-router' {
       path: '/master'
       fullPath: '/master'
       preLoaderRoute: typeof MasterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/live/sync': {
@@ -256,7 +236,6 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   MasterRoute: MasterRoute,
   NodesRoute: NodesRoute,
   OfficeRoute: OfficeRoute,

@@ -9,6 +9,7 @@ import CountryCompare from "@/components/CountryCompare";
 import { TopNav } from "@/components/TopNav";
 import { Sidebar } from "@/components/Sidebar";
 
+
 export const Route = createFileRoute("/")({
   loader: async () => {
     return { utc: null, nodes: null };
@@ -70,12 +71,21 @@ type LiveUtc = {
   office?: {
     iso?: string;
     office_utc?: string;
+    system_utc?: string;
     epoch_ms?: number;
+    difference_ms?: number | null;
+      offset_ms?: number | null;
+      delay_ms?: number | null;
+      originate_ms?: number;
+      receive_ms?: number;
     host?: string;
     port?: number;
     stratum?: number;
     refid?: string;
     label?: string;
+    root_delay_ms?: number;
+    root_dispersion_ms?: number;
+    status?: string;
   };
 };
 
@@ -100,8 +110,11 @@ function StatChip({ icon: Icon, label, value }: { icon: any; label: string; valu
 }
 
 function Index() {
+  const INITIAL_VISIBLE_NODES = 8;
   const initialData = Route.useLoaderData();
   const [bgVariant, setBgVariant] = useState<'darker' | 'brighter'>('darker');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     try {
@@ -121,131 +134,271 @@ function Index() {
   }, [bgVariant]);
 
   const mainStyle = useMemo(() => {
-    if (bgVariant !== 'brighter') return undefined;
-    return {
-      background: 'linear-gradient(180deg, #ffffff 0%, #f7fafc 100%)',
-      color: '#0f172a',
-      // CSS variables to override theme
-      '--background': '#ffffff',
-      '--foreground': '#0f172a',
-      '--card': 'rgba(255,255,255,0.9)',
-      '--card-foreground': '#0f172a',
-      '--popover': 'rgba(255,255,255,0.95)',
-      '--popover-foreground': '#0f172a',
-      '--primary': '#06b6d4',
-      '--primary-foreground': '#ffffff',
-      '--muted': 'rgba(15,23,42,0.06)',
-      '--muted-foreground': 'rgba(15,23,42,0.5)',
-      '--accent': '#06b6d4',
-      '--accent-foreground': '#ffffff',
-      '--border': 'rgba(15,23,42,0.06)',
-      '--input': 'rgba(15,23,42,0.04)',
-      '--ring': '#06b6d4',
-      '--cyan-glow': '#06b6d4',
-      '--neon': '#06b6d4',
-      '--online': '#06b6d4',
-      '--grid': 'rgba(15,23,42,0.06)'
+    // Use a warm yellow theme for highlights while preserving background variants.
+    const yellow = '#f59e0b';
+    const base: React.CSSProperties = {
+      '--primary': yellow,
+      '--accent': yellow,
+      '--ring': yellow,
+      '--cyan-glow': yellow,
+      '--neon': yellow,
+      '--online': yellow,
     } as React.CSSProperties;
+
+    if (bgVariant === 'brighter') {
+      return {
+        background:
+          'radial-gradient(circle at top left, rgba(0,217,255,0.12), transparent 34%), radial-gradient(circle at bottom right, rgba(250,204,21,0.10), transparent 28%), linear-gradient(180deg, #ffffff 0%, #f4f7fb 56%, #eef4fb 100%)',
+        color: '#0f172a',
+        '--background': '#ffffff',
+        '--foreground': '#0f172a',
+        '--card': 'rgba(255,255,255,0.88)',
+        '--card-foreground': '#0f172a',
+        '--popover': 'rgba(255,255,255,0.96)',
+        '--popover-foreground': '#0f172a',
+        '--surface': 'rgba(255,255,255,0.75)',
+        '--surface-container-lowest': 'rgba(255,255,255,0.86)',
+        '--surface-container-low': 'rgba(249,250,252,0.88)',
+        '--surface-container': 'rgba(244,247,251,0.94)',
+        '--surface-container-high': 'rgba(238,244,251,0.96)',
+        '--surface-container-highest': 'rgba(229,238,248,0.98)',
+        '--on-surface-variant': '#475569',
+        '--outline-variant': 'rgba(15,23,42,0.10)',
+        '--secondary-container': 'rgba(14,165,164,0.14)',
+        '--on-secondary-container': '#0f172a',
+        '--primary-container': 'rgba(0,217,255,0.20)',
+        '--on-primary-container': '#0f172a',
+        '--muted': 'rgba(15,23,42,0.04)',
+        '--muted-foreground': 'rgba(15,23,42,0.58)',
+        '--border': 'rgba(15,23,42,0.08)',
+        '--input': 'rgba(15,23,42,0.06)',
+        ...base,
+      } as React.CSSProperties;
+    }
+
+    return base;
   }, [bgVariant]);
   const [live, setLive] = useState<LivePayload | null>(null);
   const [apiState, setApiState] = useState<"connecting" | "live" | "offline">("connecting");
+  const [activityFeed, setActivityFeed] = useState<string[]>(() => []);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [officeSnapshot, setOfficeSnapshot] = useState<LiveUtc["office"] | null>(null);
+  const [clockNowMs, setClockNowMs] = useState(() => Date.now());
+  const [officeSnapshotAtMs, setOfficeSnapshotAtMs] = useState(() => Date.now());
 
-  // Fetch initial data client-side
+  // Fetch initial data client-side with optimized strategy: try relative URL first (Vite proxy),
+  // then fallback to configured API_BASE, with short timeouts for fast failure detection.
   useEffect(() => {
-    const fetchInitialData = async () => {
+    let cancelled = false;
+    const timeout = 3000; // 3s timeout per request
+    
+    const fetchWithTimeout = async (url: string) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
       try {
-        const [utcResponse, nodesResponse] = await Promise.all([
-          fetch(`${API_BASE}/api/utc`),
-          fetch(`${API_BASE}/api/nodes`),
+        console.log('[index] Fetching from:', url);
+        const [utcResp, nodesResp] = await Promise.all([
+          fetch(url, { signal: controller.signal }),
+          fetch(url.replace('/api/utc', '/api/nodes'), { signal: controller.signal }),
         ]);
-
-        if (!utcResponse.ok || !nodesResponse.ok) {
-          throw new Error("Unable to reach backend API");
-        }
-
-        const utc = (await utcResponse.json()) as LiveUtc;
-        const nodes = (await nodesResponse.json()) as CountryCardProps[];
-
-        setLive({ utc, nodes });
-        setOfficeSnapshot(utc.office ?? null);
-      } catch (error) {
-        console.error("Failed to fetch initial data:", error);
+        clearTimeout(id);
+        console.log('[index] Responses:', { utcStatus: utcResp.status, nodesStatus: nodesResp.status });
+        if (!utcResp.ok || !nodesResp.ok) return null;
+        const utc = await utcResp.json() as LiveUtc;
+        const nodes = await nodesResp.json() as CountryCardProps[];
+        console.log('[index] Initial fetch success, office data:', utc.office ? 'present' : 'missing');
+        return { utc, nodes };
+      } catch (e) {
+        clearTimeout(id);
+        console.error('[index] Fetch error:', String(e));
+        return null;
       }
     };
 
-    fetchInitialData();
+    (async () => {
+      // Try relative URL first (Vite proxy in dev, native on prod)
+      let result = await fetchWithTimeout('/api/utc');
+      
+      // Quick fallback to configured API_BASE if relative fails
+      if (!result && API_BASE !== '') {
+        console.log('[index] Fallback to API_BASE:', API_BASE);
+        result = await fetchWithTimeout(`${API_BASE}/api/utc`);
+      }
+      
+      if (cancelled) return;
+      if (result) {
+        console.log('[index] Setting live data');
+        setLive({ utc: result.utc, nodes: result.nodes });
+        setOfficeSnapshot(result.utc.office ?? null);
+        setActivityFeed((s) => [`${new Date().toISOString()} • Initial data loaded (${result.nodes.length} nodes)`, ...s].slice(0, 50));
+        setApiState('live');
+      } else {
+        console.log('[index] No initial data, starting polling');
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
+    const wsTimeout = 2000; // 2s timeout for WS connection
+    const pollInterval = 30000; // 30 seconds polling ONLY if WebSocket fails
 
-    const wsBase = API_BASE.replace(/^http/, "ws");
-    const socket = new WebSocket(`${wsBase}/ws/live`);
+    // Try WebSocket with minimal timeout, fallback to polling only as last resort
+    let socket: WebSocket | null = null;
+    let pollId: number | null = null;
 
-    socket.onopen = () => {
-      if (!cancelled) setApiState("live");
-    };
-
-    socket.onmessage = (event) => {
+    const connectWs = () => new Promise<WebSocket>((resolve, reject) => {
       try {
-        const payload = JSON.parse(event.data) as LivePayload;
-        if (!cancelled && payload?.utc && Array.isArray(payload.nodes)) {
-          setLive((current) => ({
-            utc: {
-              ...current?.utc,
-              ...payload.utc,
-              office: payload.utc.office ?? current?.utc.office,
-            },
-            nodes: payload.nodes,
-            type: payload.type,
-          }));
-          if (payload.utc.office) {
-            setOfficeSnapshot(payload.utc.office);
-          }
-          setApiState("live");
-        }
-      } catch {
-        if (!cancelled) setApiState("offline");
+        // Direct backend connection (bypass Vite proxy for WebSocket)
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const url = `${protocol}://localhost:8000/ws/live`;
+        console.log('[WS] Connecting to backend:', url);
+        const s = new WebSocket(url);
+        const timeoutId = setTimeout(() => {
+          console.log('[WS] ⏱️ Timeout - no connection');
+          try { s.close(); } catch {}
+          reject(new Error('WS timeout'));
+        }, wsTimeout);
+
+        const onopen = () => {
+          clearTimeout(timeoutId);
+          s.removeEventListener('open', onopen);
+          s.removeEventListener('error', onerror);
+          console.log('[WS] ✅ Connected - using WebSocket (no polling!)');
+          resolve(s);
+        };
+        const onerror = () => {
+          clearTimeout(timeoutId);
+          s.removeEventListener('open', onopen);
+          s.removeEventListener('error', onerror);
+          console.log('[WS] ❌ Connection failed - will use polling fallback');
+          reject(new Error('WS error'));
+        };
+        s.addEventListener('open', onopen);
+        s.addEventListener('error', onerror);
+      } catch (e) {
+        console.error('[WS] Exception:', e);
+        reject(e);
       }
+    });
+
+    const startPolling = () => {
+      if (pollId !== null) return;
+      console.log('[Polling] ⚠️  WebSocket unavailable - polling every 30s (reduced from 2s)');
+      pollId = window.setInterval(async () => {
+        if (cancelled) return;
+        try {
+          const controller = new AbortController();
+          const id = setTimeout(() => controller.abort(), 2000);
+          const r = await fetch('/api/utc', { signal: controller.signal });
+          clearTimeout(id);
+          if (!r.ok) return;
+          const utc = await r.json() as LiveUtc;
+          if (cancelled) return;
+          setLive((cur) => ({ ...cur, utc } as any));
+          setOfficeSnapshot(utc.office ?? null);
+          if (apiState !== 'live') setApiState('live');
+        } catch (e) {
+          // Silent fail on polling
+        }
+      }, pollInterval); // 30 seconds instead of 500ms!
     };
 
-    socket.onerror = () => {
-      if (!cancelled) setApiState("offline");
-    };
+    (async () => {
+      try {
+        socket = await connectWs();
+        if (cancelled) {
+          socket.close();
+          return;
+        }
 
-    socket.onclose = () => {
-      if (!cancelled) setApiState("offline");
-    };
+        console.log('[WS] 🔄 Ready for live updates');
+        setApiState('live');
+
+        socket.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data) as LivePayload;
+            if (!cancelled && payload?.utc) {
+              setLive((current) => ({
+                utc: { ...current?.utc, ...payload.utc, office: payload.utc.office ?? current?.utc.office },
+                nodes: payload.nodes ?? current?.nodes,
+                type: payload.type,
+              }));
+              if (payload.utc.office) setOfficeSnapshot(payload.utc.office);
+            }
+          } catch (e) {
+            console.error('[WS] Parse error:', e);
+          }
+        };
+
+        socket.onerror = () => {
+          if (!cancelled) {
+            console.log('[WS] ❌ WebSocket error');
+            setApiState('offline');
+            startPolling();
+          }
+        };
+
+        socket.onclose = () => {
+          if (!cancelled) {
+            console.log('[WS] ❌ WebSocket closed - switching to polling');
+            setApiState('offline');
+            startPolling();
+          }
+        };
+      } catch (e) {
+        // WS failed immediately; use polling as fallback
+        if (!cancelled) {
+          console.log('[WS] 💤 WebSocket unavailable - using polling');
+          startPolling();
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;
-      socket.close();
+      try { socket?.close(); } catch {}
+      if (pollId !== null) { clearInterval(pollId); }
     };
   }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setNowMs(Date.now());
-    }, 1000);
+    }, 100); // 100ms update for smooth second-by-second time movement
 
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    let frameId = 0;
+
+    const tick = () => {
+      setClockNowMs(Date.now());
+      frameId = window.requestAnimationFrame(tick);
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
   const nodes = live?.nodes ?? COUNTRIES;
-  const [localNodes, setLocalNodes] = useState<typeof COUNTRIES>(() => {
+  const [localNodes, setLocalNodes] = useState<CountryCardProps[]>(() => {
     // Initialize with one clone added by default
-    const base = COUNTRIES[0];
+    const base = COUNTRIES[0] as CountryCardProps;
     const suffix = String(Date.now()).slice(-3);
-    const clone = { ...base, code: `${base.code}_${suffix}` } as any;
-    return [...nodes, clone];
+    const clone: CountryCardProps = { ...base, code: `${base.code}_${suffix}` };
+    return [...COUNTRIES, clone] as CountryCardProps[];
   });
   useEffect(() => {
-    setLocalNodes(nodes);
+    setLocalNodes([...nodes]);
   }, [nodes]);
 
   const [toClone, setToClone] = useState<string>(COUNTRIES[0].code);
+  const [showAllNodes, setShowAllNodes] = useState(false);
 
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
@@ -257,13 +410,24 @@ function Index() {
     ? (localNodes.find((n) => n.code === compareSelection[1])?.name + " • " + compareSelection[1])
     : null;
 
+  const visibleNodes = showAllNodes
+    ? localNodes
+    : localNodes.slice(0, INITIAL_VISIBLE_NODES);
+
+  useEffect(() => {
+    // Lock page scroll until the user explicitly expands the node list.
+    document.body.style.overflow = showAllNodes ? "auto" : "hidden";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [showAllNodes]);
+
   function addClone(code: string) {
     const base = (COUNTRIES.find((c) => c.code === code) || COUNTRIES[0]) as any;
     const suffix = String(Date.now()).slice(-3);
     const clone = { ...base, code: `${base.code}_${suffix}` } as any;
     setLocalNodes((s) => [...s, clone]);
   }
-  const utcEpochMs = live?.utc.epoch_ms ?? Date.now();
   const connectionLabel = useMemo(
     () => (apiState === "live" ? "API LIVE" : apiState === "connecting" ? "CONNECTING" : "API OFFLINE"),
     [apiState],
@@ -274,156 +438,230 @@ function Index() {
   const officeUtcIso = officeData?.iso ?? officeData?.office_utc ?? null;
   const officeBaseMs = officeData?.epoch_ms
     ?? (officeUtcIso ? new Date(officeUtcIso).getTime() : null);
-  const utcDiffMs = officeBaseMs !== null ? officeBaseMs - utcEpochMs : null;
-  const boardDiffMs = utcDiffMs;
-  const officeDelayMs = boardDiffMs !== null ? Math.abs(boardDiffMs) : null;
-  const officeDriftMs = boardDiffMs;
-  const formatDelta = (ms: number | null) => {
+  const browserUtcMs = clockNowMs;
+  const masterDisplayMs = browserUtcMs;
+  const officeDisplayMs = officeBaseMs !== null ? officeBaseMs + (clockNowMs - officeSnapshotAtMs) : masterDisplayMs;
+  const utcDiffMs = officeBaseMs !== null ? officeBaseMs - browserUtcMs : null;
+  const officeDelayMs = typeof officeData?.delay_ms === "number"
+    ? officeData.delay_ms
+    : typeof officeData?.root_delay_ms === "number"
+      ? officeData.root_delay_ms
+      : null;
+  const officeDriftMs = typeof officeData?.offset_ms === "number"
+    ? officeData.offset_ms
+    : typeof officeData?.difference_ms === "number"
+      ? officeData.difference_ms
+      : utcDiffMs;
+  const delayState = officeDelayMs === null
+    ? { label: 'SYNCING', tone: 'text-teal-600 border-teal-300 bg-teal-50', dot: 'bg-teal-500' }
+    : officeDelayMs < 250
+      ? { label: 'SYNCHRONIZED', tone: 'text-emerald-600 border-emerald-300 bg-emerald-50', dot: 'bg-emerald-500' }
+      : officeDelayMs < 500
+        ? { label: 'WATCH', tone: 'text-amber-600 border-amber-300 bg-amber-50', dot: 'bg-amber-500' }
+        : { label: 'OUT OF SYNC', tone: 'text-rose-600 border-rose-300 bg-rose-50', dot: 'bg-rose-500' };
+  const driftState = officeDriftMs === null
+    ? { label: 'SYNCING', tone: 'text-teal-600 border-teal-300 bg-teal-50', dot: 'bg-teal-500' }
+    : Math.abs(officeDriftMs) < 0.15
+      ? { label: 'SYNCHRONIZED', tone: 'text-emerald-600 border-emerald-300 bg-emerald-50', dot: 'bg-emerald-500' }
+      : Math.abs(officeDriftMs) < 0.35
+        ? { label: 'WATCH', tone: 'text-amber-600 border-amber-300 bg-amber-50', dot: 'bg-amber-500' }
+        : { label: 'OUT OF SYNC', tone: 'text-rose-600 border-rose-300 bg-rose-50', dot: 'bg-rose-500' };
+  const formatDelta = useMemo(() => (ms: number | null) => {
     if (ms === null) return "-- ms";
     const sign = ms >= 0 ? "+" : "-";
     return `${sign}${Math.abs(ms).toFixed(3)} ms`;
-  };
-  const officeDisplay = officeBaseMs
-    ? new Date(officeBaseMs).toISOString().replace("T", " ").replace("Z", " UTC")
-    : "OFFICE NTP DATA NOT YET AVAILABLE";
+  }, []);
+
+  const officeDisplay = useMemo(
+    () => officeBaseMs
+      ? new Date(officeBaseMs).toISOString().replace("T", " ").replace("Z", " UTC")
+      : "OFFICE NTP DATA NOT YET AVAILABLE",
+    [officeBaseMs]
+  );
+
+  useEffect(() => {
+    if (officeBaseMs !== null) {
+      setOfficeSnapshotAtMs(Date.now());
+    }
+  }, [officeBaseMs]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden" style={mainStyle}>
-      <TopNav />
-      <Sidebar />
+    <div className={`relative min-h-screen overflow-hidden ${bgVariant === 'brighter' ? 'theme-bright' : 'theme-dark'}`} style={mainStyle} data-theme={bgVariant}>
+      <TopNav
+        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        sidebarOpen={sidebarOpen}
+        themeVariant={bgVariant}
+        onThemeVariantChange={setBgVariant}
+      />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+      />
       <WorldMapBg variant={bgVariant} />
 
-      <main className="relative z-10 lg:ml-[280px] pt-20 px-6 lg:px-10 py-6 min-h-screen">
+      <main className={`relative z-10 pt-24 px-6 lg:px-10 py-4 min-h-screen transition-[margin] duration-300 ${sidebarCollapsed ? 'lg:ml-[92px]' : 'lg:ml-[280px]'}`}>
       <div className="max-w-[1800px] mx-auto">
         {/* Top bar */}
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="-mt-1 text-left">
-              <img
-                src={bgVariant === 'brighter' ? '/logo-light.png' : '/logo-dark.png'}
-                alt="IIT Tirupati Navavishkār"
-                className="mx-0 header-logo-lg"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-              <h1 className="mt-2 text-lg font-bold tracking-[0.25em] text-glow">NTP-SYNC COMMAND</h1>
-              <div className="text-[10px] text-muted-foreground font-mono tracking-[0.3em]">
-                GLOBAL TIME COORDINATION CENTER • CLASSIFIED
-              </div>
-            </div>
-          </div>
-
-          <div className="hidden md:flex flex-col items-end gap-3">
-            <div className="flex items-center gap-3">
-              <StatChip icon={Satellite} label="GNSS LOCK"   value="GPS 11 • GAL 8 • GLO 7" />
-              <StatChip icon={Radio}     label="REF CLOCK"   value="Cs-III • Stratum 1" />
-              <StatChip icon={Activity}  label="OFFSET RMS"  value="±0.42 ms" />
-            </div>
+        <header className="dashboard-hero flex flex-col items-center mb-4 sm:mb-6 text-center">
+          <div className="hero-orbit" aria-hidden />
+          <h1 className="animate-title-glow mt-1 sm:mt-2 text-xl sm:text-3xl md:text-4xl font-extrabold tracking-[0.12em] sm:tracking-[0.15em] bg-gradient-to-r from-cyan-300 via-cyan-200 to-blue-300 bg-clip-text text-transparent" style={{ 
+            backgroundSize: '200% auto',
+            filter: 'drop-shadow(0 0 10px rgba(56, 214, 255, 0.5)) drop-shadow(0 0 20px rgba(0, 200, 255, 0.3))'
+          }}>PRECISION • TIME • COORDINATION • CENTER</h1>
+          <div className="flex items-center gap-2 mt-2 sm:mt-3">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-pulse"></span>
+            <div className="text-[10px] sm:text-[12px] text-cyan-300/80 font-mono tracking-[0.25em] sm:tracking-[0.3em] uppercase font-semibold">Global Synchronization Network</div>
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-pulse"></span>
           </div>
         </header>
 
-        {/* Master clock - centered in middle */}
-        <section className="min-h-screen flex flex-col items-center justify-center gap-8 mb-12">
-          <div className="flex items-start gap-6 w-full px-8 justify-end max-w-7xl">
-            <div className="flex flex-col items-end gap-3">
-              {
-                (() => {
-                  const isIittnif = (officeData?.host === "10.26.13.44") || (officeData?.label && String(officeData.label).toLowerCase().includes('iittnif'));
-                  return (
-                    <button
-                      type="button"
-                      className={`glass rounded-lg px-5 py-3 text-left min-w-[360px] border ${isIittnif ? 'office-highlight border-cyan-glow/40' : 'border-cyan-glow/20'} shadow-[0_0_24px_rgba(0,229,255,0.08)] hover:border-cyan-glow/40 transition-colors`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="text-[9px] font-mono tracking-[0.35em] text-muted-foreground">IITTNIF - UTC TIME</div>
-                        {isIittnif && <div className="iittnif-badge">IITTNIF</div>}
-                      </div>
-
-                      <div className="mt-1 text-lg font-mono font-bold text-cyan-glow">{officeDisplay}</div>
-
-                      <div className="mt-1 text-[10px] font-mono host-line">
-                        {officeData
-                          ? `${officeData.host ?? "10.26.13.44"}:${officeData.port ?? 123} • master→IITTNIF ${formatDelta(utcDiffMs)}`
-                          : "OFFICE NTP DATA NOT YET AVAILABLE"}
-                      </div>
-                    </button>
-                  );
-                })()
-              }
-              <div className="flex flex-row items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setBgVariant('darker')}
-                  className={`px-3 py-1 rounded text-[12px] font-medium ${bgVariant === 'darker' ? 'bg-cyan-glow/10 border border-cyan-glow' : 'bg-transparent border border-cyan-glow/10'}`}
-                >
-                  Darker
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBgVariant('brighter')}
-                  className={`px-3 py-1 rounded text-[12px] font-medium ${bgVariant === 'brighter' ? 'bg-cyan-glow/10 border border-cyan-glow' : 'bg-transparent border border-cyan-glow/10'}`}
-                >
-                  Brighter
-                </button>
+        {/* Premium Synchronization Dashboard - Left/Right Clock Layout */}
+        <section className="mt-2 mb-8 sm:mb-12 w-full">
+          {/* Master UTC Clock (Left) | Sync Comparison (Center) | IITTNIF Office Clock (Right) */}
+          <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 sm:gap-8 md:gap-10 lg:gap-6 w-full">
+            
+            {/* LEFT: Master UTC Clock */}
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[280px]">
+              <div className="relative w-full max-w-sm">
+                {/* Cyan glow ring */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-transparent to-blue-500/10 blur-lg" style={{ width: '90%', height: '90%', margin: 'auto' }} />
+                
+                <div className="glass rounded-2xl border border-cyan-glow/30 p-4 sm:p-6 text-center bg-gradient-to-br from-background/50 to-background/30">
+                  <div className="text-[9px] sm:text-[10px] font-mono tracking-[0.4em] text-cyan-glow font-bold mb-2 sm:mb-3">MASTER • UTC</div>
+                  
+                  {/* Analog clock */}
+                  <div className="flex justify-center mb-3 sm:mb-4">
+                    <div className="scale-75 sm:scale-90 lg:scale-100 origin-center">
+                      <AnalogClock epochMs={masterDisplayMs} displayMs={masterDisplayMs} />
+                    </div>
+                  </div>
+                  
+                  {/* Digital display */}
+                  <div className="text-center">
+                    <DigitalUTC epochMs={masterDisplayMs} displayMs={masterDisplayMs} />
+                    <div className="mt-2 text-[8px] sm:text-[9px] text-cyan-glow/60 font-mono tracking-[0.2em]">UTC REFERENCE</div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <AnalogClock epochMs={utcEpochMs} />
-          <DigitalUTC epochMs={utcEpochMs} />
+            {/* CENTER: Synchronization Comparison Indicator */}
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[280px]">
+              {/* Animated sync beam line */}
+              <div className="absolute hidden lg:block h-px w-full max-w-sm mx-auto" style={{
+                background: 'linear-gradient(90deg, transparent, oklch(0.85_0.18_78/0.4) 20%, oklch(0.85_0.18_78/0.8) 50%, oklch(0.85_0.18_78/0.4) 80%, transparent)',
+                animation: 'pulse 2s ease-in-out infinite',
+                top: '50%',
+                left: '50%',
+                transform: 'translateX(-50%)'
+              }} />
+              
+              <div className="relative w-full max-w-sm">
+                <div className="glass rounded-2xl border border-cyan-glow/20 p-4 sm:p-6 bg-gradient-to-br from-background/40 to-background/20">
+                  <div className="text-[9px] sm:text-[10px] font-mono tracking-[0.4em] text-cyan-glow/80 font-bold mb-4 sm:mb-6">SYNCHRONIZATION</div>
+                  
+                  {/* Delay card */}
+                  <div className="mb-4 p-3 rounded-lg border border-cyan-glow/15 bg-cyan-glow/5">
+                    <div className="text-[8px] sm:text-[9px] font-mono tracking-[0.3em] text-muted-foreground mb-1">DELAY</div>
+                    <div className="flex items-baseline justify-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${delayState.dot} shadow-[0_0_8px_currentColor]`} />
+                      <div className="text-xl sm:text-2xl font-mono font-bold text-cyan-glow tabular-nums">{formatDelta(officeDelayMs)}</div>
+                    </div>
+                    <div className={`mt-2 text-[8px] sm:text-[9px] font-mono ${delayState.tone.split(' ')[0]}`}>{delayState.label}</div>
+                  </div>
+                  
+                  {/* Drift card */}
+                  <div className="p-3 rounded-lg border border-cyan-glow/15 bg-cyan-glow/5">
+                    <div className="text-[8px] sm:text-[9px] font-mono tracking-[0.3em] text-muted-foreground mb-1">DRIFT</div>
+                    <div className="flex items-baseline justify-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${driftState.dot} shadow-[0_0_8px_currentColor]`} />
+                      <div className="text-xl sm:text-2xl font-mono font-bold text-cyan-glow tabular-nums">{formatDelta(officeDriftMs)}</div>
+                    </div>
+                    <div className={`mt-2 text-[8px] sm:text-[9px] font-mono ${driftState.tone.split(' ')[0]}`}>{driftState.label}</div>
+                  </div>
 
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl">
-          <div className="glass rounded-xl border border-cyan-glow/20 px-5 py-4 text-center">
-            <div className="text-[10px] font-mono tracking-[0.35em] text-muted-foreground">MASTER → IITTNIF DELAY</div>
-            <div className="mt-2 text-2xl font-mono font-bold text-cyan-glow tabular-nums">
-              {formatDelta(officeDelayMs)}
-            </div>
-          </div>
-            <div className="glass rounded-xl border border-cyan-glow/20 px-5 py-4 text-center">
-              <div className="text-[10px] font-mono tracking-[0.35em] text-muted-foreground">MASTER → IITTNIF DRIFT</div>
-              <div className="mt-2 text-2xl font-mono font-bold text-cyan-glow tabular-nums">
-                {formatDelta(officeDriftMs)}
+                  {/* Offset indicator */}
+                  <div className="mt-4 pt-3 border-t border-cyan-glow/10">
+                    <div className="text-[7px] sm:text-[8px] text-cyan-glow/50 font-mono">Offset</div>
+                    <div className="text-sm sm:text-base font-mono font-bold text-cyan-glow/90 mt-1">{formatDelta(utcDiffMs)}</div>
+                  </div>
+                </div>
               </div>
             </div>
-          </section>
+
+            {/* RIGHT: IITTNIF Office NTP Clock */}
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[280px]">
+              <div className="relative w-full max-w-sm">
+                {/* Blue glow ring */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/15 via-transparent to-blue-400/10 blur-lg" style={{ width: '90%', height: '90%', margin: 'auto' }} />
+                <div className="glass rounded-2xl border border-blue-400/40 p-4 sm:p-6 text-center bg-gradient-to-br from-background/50 to-background/30">
+                  <div className="text-[9px] sm:text-[10px] font-mono tracking-[0.4em] text-blue-400 font-bold mb-2 sm:mb-3">IITTNIF • NTP</div>
+
+                  {/* Analog clock */}
+                  <div className="flex justify-center mb-3 sm:mb-4">
+                    <div className="scale-75 sm:scale-90 lg:scale-100 origin-center">
+                      <AnalogClock epochMs={officeBaseMs ?? masterDisplayMs} displayMs={officeDisplayMs} />
+                    </div>
+                  </div>
+
+                  {/* Digital display */}
+                  <div className="text-center">
+                    <DigitalUTC
+                      epochMs={officeBaseMs ?? masterDisplayMs}
+                      displayMs={officeDisplayMs}
+                      tone="blue"
+                      heading="◆ IITTNIF UTC SYNCHRONIZED ◆"
+                      footer={`IITTNIF SERVER UTC • ${officeData?.host ?? '10.26.13.44'}`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </section>
 
         {/* Section heading */}
-        <div className="flex items-center gap-4 mb-5">
+        <div className="flex items-center gap-2 sm:gap-4 mb-6 sm:mb-8 mt-8 sm:mt-12">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-glow/50 to-transparent" />
-          <h2 className="text-xs font-mono tracking-[0.4em] text-cyan-glow text-glow">
-            ◆ GLOBAL SYNCHRONIZATION NODES ◆
+          <h2 className="text-[10px] sm:text-xs md:text-sm font-mono tracking-[0.3em] sm:tracking-[0.4em] md:tracking-[0.5em] text-cyan-glow text-glow whitespace-nowrap flex items-center gap-2 sm:gap-3">
+            <span>◆</span>
+            <span>GLOBAL NODES</span>
+            <span>◆</span>
           </h2>
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-glow/50 to-transparent" />
         </div>
 
         {/* Cards grid */}
 
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => {
-                setCompareMode((v) => !v);
-                setCompareSelection([]);
-              }}
-              className={`px-3 py-2 rounded ${compareMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-            >
-              {compareMode ? "Comparing: select 2 cards" : "Compare"}
-            </button>
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 overflow-x-auto">
+          <button
+            onClick={() => {
+              setCompareMode((v) => !v);
+              setCompareSelection([]);
+            }}
+            className={`px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-semibold whitespace-nowrap flex-shrink-0 transition-colors ${compareMode ? "bg-cyan-glow text-background shadow-[0_0_15px_rgba(0,217,255,0.5)]" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+          >
+            {compareMode ? "◆ COMPARING ◆" : "Compare"}
+          </button>
 
-            <div className="flex items-center gap-2">
-              <div className="w-44 p-2 bg-background/60 rounded border border-cyan-glow/10 text-sm text-muted-foreground">
-                {compareLabelA ?? "Slot A: select a card"}
+          {compareMode && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+              <div className="w-40 sm:w-48 px-3 py-2 bg-background/60 rounded border border-cyan-glow/20 text-[11px] sm:text-sm text-cyan-glow/80 font-mono truncate flex-shrink-0">
+                {compareLabelA ?? "A: select"}
               </div>
-              <div className="w-44 p-2 bg-background/60 rounded border border-cyan-glow/10 text-sm text-muted-foreground">
-                {compareLabelB ?? "Slot B: select a card"}
+              <div className="text-cyan-glow/40 text-xs flex-shrink-0">↔</div>
+              <div className="w-40 sm:w-48 px-3 py-2 bg-background/60 rounded border border-cyan-glow/20 text-[11px] sm:text-sm text-cyan-glow/80 font-mono truncate flex-shrink-0">
+                {compareLabelB ?? "B: select"}
               </div>
             </div>
-          </div>
-          <div />
+          )}
         </div>
 
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {localNodes.map((c) => (
+        <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 lg:gap-5">
+          {visibleNodes.map((c) => (
             <CountryCard
               key={c.code}
               {...c}
@@ -439,6 +677,18 @@ function Index() {
             />
           ))}
         </section>
+
+        {!showAllNodes && localNodes.length > INITIAL_VISIBLE_NODES && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+            <button
+              type="button"
+              onClick={() => setShowAllNodes(true)}
+              className="px-6 py-2.5 rounded-md bg-primary text-primary-foreground font-mono tracking-[0.2em] hover:opacity-90 transition-opacity shadow-[0_0_25px_rgba(245,158,11,0.45)] border border-primary/60"
+            >
+              SHOW MORE
+            </button>
+          </div>
+        )}
 
         {compareSelection.length === 2 && (
           <div
@@ -466,13 +716,13 @@ function Index() {
         )}
 
         {/* Footer */}
-        <footer className="mt-10 flex flex-col md:flex-row items-center justify-between gap-3 text-[10px] font-mono tracking-[0.25em] text-muted-foreground">
-          <span>SYS://NTP.GLOBAL.MIL — CHANNEL SECURE</span>
-          <span className="flex items-center gap-2">
+        <footer className="mt-12 sm:mt-16 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 py-4 sm:py-6 px-2 text-[8px] sm:text-[9px] md:text-[10px] font-mono tracking-[0.2em] sm:tracking-[0.25em] text-muted-foreground border-t border-cyan-glow/10">
+          <span className="text-center sm:text-left text-[7px] sm:text-[8px]">SYS://NTP.GLOBAL.MIL — SECURE</span>
+          <span className="flex items-center gap-2 sm:gap-3">
             <span className="w-1.5 h-1.5 rounded-full bg-online animate-pulse" />
-            {connectionLabel} • {nodes.length} / {COUNTRIES.length} • LEAP: {live?.utc.leap ?? "NONE"}
+            <span className="truncate text-[8px] sm:text-[9px]">{connectionLabel} • {nodes.length}/{COUNTRIES.length}</span>
           </span>
-          <span>BUILD 24.11 • CRYPTO-SIGNED</span>
+          <span className="text-[7px] sm:text-[8px]">v24.11</span>
         </footer>
       </div>
       </main>

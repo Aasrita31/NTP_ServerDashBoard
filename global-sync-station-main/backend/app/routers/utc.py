@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import socket
 import struct
 import logging
+import time
 from typing import Any
 from fastapi import APIRouter, Body
 
@@ -22,11 +23,18 @@ def query_ntp(host: str, port: int = 123, timeout: float = 5.0):
     """
     try:
         addr = (host, port)
-        msg = b'\x1b' + 47 * b'\0'
+        send_time = time.time()
+        msg = bytearray(48)
+        msg[0] = 0x1B
+        ntp_send = send_time + 2208988800
+        send_seconds = int(ntp_send)
+        send_fraction = int((ntp_send - send_seconds) * 0x100000000)
+        struct.pack_into('!II', msg, 40, send_seconds, send_fraction)
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.settimeout(timeout)
             s.sendto(msg, addr)
             data, _ = s.recvfrom(512)
+        receive_time = time.time()
         if len(data) < 48:
             return None
 
@@ -56,16 +64,29 @@ def query_ntp(host: str, port: int = 123, timeout: float = 5.0):
         except Exception:
             refid = None
 
-        # Transmit timestamp (bytes 40..47)
-        secs, frac = struct.unpack('!II', data[40:48])
+        # RFC 5905 timestamps: originate, receive, and transmit.
+        originate_secs, originate_frac = struct.unpack('!II', data[24:32])
+        receive_secs, receive_frac = struct.unpack('!II', data[32:40])
+        transmit_secs, transmit_frac = struct.unpack('!II', data[40:48])
         NTP_EPOCH = 2208988800
-        unix_secs = secs - NTP_EPOCH
-        epoch_ms = int(unix_secs * 1000 + (frac * 1000) / 0x100000000)
-        iso = datetime.fromtimestamp(unix_secs, tz=timezone.utc).isoformat()
+        originate_time = (originate_secs - NTP_EPOCH) + (originate_frac / 0x100000000)
+        server_receive_time = (receive_secs - NTP_EPOCH) + (receive_frac / 0x100000000)
+        server_transmit_time = (transmit_secs - NTP_EPOCH) + (transmit_frac / 0x100000000)
+        epoch_ms = int(server_transmit_time * 1000)
+        delay_ms = round(((receive_time - send_time) - (server_transmit_time - server_receive_time)) * 1000, 3)
+        offset_ms = round((((server_receive_time - send_time) + (server_transmit_time - receive_time)) / 2) * 1000, 3)
+        office_utc = datetime.fromtimestamp(server_transmit_time, tz=timezone.utc)
+        system_utc = datetime.now(timezone.utc)
+        difference_ms = round((system_utc - office_utc).total_seconds() * 1000, 3)
 
         return {
-            "iso": iso,
+            "iso": office_utc.isoformat(),
+            "office_utc": office_utc.isoformat(),
+            "system_utc": system_utc.isoformat(),
+            "difference_ms": difference_ms,
             "epoch_ms": epoch_ms,
+            "offset_ms": offset_ms,
+            "delay_ms": delay_ms,
             "stratum": int(stratum),
             "refid": refid,
             "root_delay_ms": root_delay_ms,
@@ -75,6 +96,9 @@ def query_ntp(host: str, port: int = 123, timeout: float = 5.0):
             "version": int(version),
             "host": host,
             "port": port,
+            "originate_ms": int(originate_time * 1000),
+            "receive_ms": int(server_receive_time * 1000),
+            "status": "CONNECTED",
         }
     except Exception as e:
         logger.error(f"NTP query failed for {host}:{port} - {type(e).__name__}: {e}")
@@ -112,9 +136,41 @@ async def get_utc():
                 result["office"] = office
                 logger.info(f"Successfully queried NTP server: {office}")
             else:
-                logger.warning(f"Failed to query NTP server at {host}:{port}")
+                # If the NTP query fails (network or unreachable), provide a best-effort
+                # office snapshot using the server's local clock so the frontend can
+                # display an office UTC time and connection info instead of an empty placeholder.
+                logger.warning(f"Failed to query NTP server at {host}:{port}, falling back to local time")
+                now_off = datetime.now(timezone.utc)
+                result["office"] = {
+                    "iso": now_off.isoformat(),
+                    "office_utc": now_off.isoformat(),
+                    "system_utc": now_off.isoformat(),
+                    "difference_ms": None,
+                    "epoch_ms": int(now_off.timestamp() * 1000),
+                    "host": host,
+                    "port": port,
+                    "label": settings.office_ntp_label,
+                    "stratum": None,
+                    "refid": None,
+                    "status": "FALLBACK",
+                }
         else:
             logger.debug("No office NTP host configured")
+            # Provide a default office snapshot using server local time so the UI isn't empty
+            now_off = datetime.now(timezone.utc)
+            result["office"] = {
+                "iso": now_off.isoformat(),
+                "office_utc": now_off.isoformat(),
+                "system_utc": now_off.isoformat(),
+                "difference_ms": None,
+                "epoch_ms": int(now_off.timestamp() * 1000),
+                "host": settings.office_ntp_host or "localhost",
+                "port": getattr(settings, "office_ntp_port", 123),
+                "label": settings.office_ntp_label,
+                "stratum": None,
+                "refid": None,
+                "status": "FALLBACK",
+            }
 
     return result
 
