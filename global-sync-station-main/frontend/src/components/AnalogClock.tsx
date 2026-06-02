@@ -54,7 +54,7 @@ export function AnalogClock({ epochMs, displayMs }: AnalogClockProps) {
   const { hour: hourAngle, minute: minAngle, second: secAngle, millisecond: msAngle } = angles;
 
   return (
-    <div className="analog-clock relative w-56 h-56" suppressHydrationWarning>
+    <div className="analog-clock relative w-56 h-56 rounded-full" suppressHydrationWarning>
       {/* Outer glow ring */}
       <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,oklch(0.85_0.18_78/0.4),transparent_40%,oklch(0.85_0.18_78/0.6),transparent_80%)] blur-md animate-spin-slow" />
       {/* Metallic bezel */}

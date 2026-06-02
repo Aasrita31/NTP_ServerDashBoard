@@ -6,6 +6,7 @@ export interface DigitalUTCProps {
   tone?: "cyan" | "blue";
   heading?: string;
   footer?: string;
+  variant?: 'normal' | 'large';
 }
 
 export function DigitalUTC({
@@ -14,6 +15,7 @@ export function DigitalUTC({
   tone = "cyan",
   heading = "◆ MASTER UTC SYNCHRONIZED ◆",
   footer = "COORDINATED UNIVERSAL TIME",
+  variant = 'normal',
 }: DigitalUTCProps) {
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(() => new Date(epochMs ?? 0));
@@ -53,29 +55,33 @@ export function DigitalUTC({
     return () => clearInterval(id);
   }, [epochMs, mounted, displayMs]);
   const time = now.toISOString().substring(11, 23);
+  const isLarge = variant === 'large';
+  const timeSizeClass = isLarge ? 'text-[3.25rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6.5rem]' : 'text-5xl';
+  const headingSizeClass = isLarge ? 'text-[12px] sm:text-[14px]' : 'text-[10px]';
+  const dateSizeClass = isLarge ? 'text-sm' : 'text-xs';
   const date = now.toISOString().substring(0, 10);
   return (
-    <div className="text-center digital-contrast digital-utc mt-6" suppressHydrationWarning>
-      <div className={`text-[10px] tracking-[0.5em] font-mono mb-4 ${toneClasses.heading}`}>
+    <div className={`text-center digital-contrast digital-utc mt-2 ${isLarge ? 'bright-digital-large p-6 rounded-xl' : ''}`} suppressHydrationWarning>
+      <div className={`${headingSizeClass} tracking-[0.5em] font-mono mb-4 ${toneClasses.heading}`}>
         {heading}
       </div>
       {!mounted ? (
-        <div className={`font-mono text-5xl font-bold tracking-[0.15em] tabular-nums ${toneClasses.time}`}>
-          <span className="mr-2 time-main">00:00:00</span>
-          <span className="align-super font-normal time-ms">.000</span>
+        <div className={`digital-time-line font-mono ${timeSizeClass} font-extrabold tracking-[0.08em] tabular-nums ${toneClasses.time}`}>
+          <span className="time-main">00:00:00</span>
+          <span className="time-ms">.000</span>
         </div>
       ) : (() => {
         const parts = time.split('.');
         const main = parts[0] ?? time;
         const ms = parts[1] ?? '';
         return (
-          <div className={`font-mono text-5xl font-bold tracking-[0.15em] tabular-nums ${toneClasses.time}`}>
-            <span className="mr-2 time-main">{main}</span>
-            <span className="align-super font-normal time-ms">.{ms}</span>
+          <div className={`digital-time-line font-mono ${timeSizeClass} font-extrabold tracking-[0.08em] tabular-nums ${toneClasses.time}`}>
+            <span className="time-main">{main}</span>
+            <span className="time-ms">.{ms}</span>
           </div>
         );
       })()}
-      <div className={`text-xs font-mono mt-1 tracking-widest ${toneClasses.date}`}>
+      <div className={`${dateSizeClass} font-mono mt-1 tracking-widest ${toneClasses.date}`}>
         {date} • {footer}
       </div>
     </div>

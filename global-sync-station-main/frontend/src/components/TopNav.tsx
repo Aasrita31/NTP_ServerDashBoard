@@ -26,7 +26,7 @@ export function TopNav({
 
         <Link
           to="/"
-          className="hidden sm:inline-flex items-center gap-2 rounded-full border border-cyan-200/25 bg-white/10 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-cyan-50 shadow-[0_0_22px_rgba(0,240,255,0.10)] transition-all hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-white/15 hover:text-white flex-shrink-0"
+          className="hidden sm:inline-flex items-center gap-2 rounded-full border border-cyan-200/35 bg-white/18 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-cyan-50 shadow-[0_0_22px_rgba(0,240,255,0.10)] transition-all hover:-translate-y-0.5 hover:border-cyan-200/60 hover:bg-white/28 hover:text-white flex-shrink-0"
         >
           <span aria-hidden>🏠</span>
           <span>Main</span>
@@ -45,16 +45,16 @@ export function TopNav({
 
       <div className="pointer-events-none justify-self-center flex w-full items-center justify-center px-2 sm:px-4 text-center min-w-0">
         <div className="nav-masthead pointer-events-auto flex flex-col items-center gap-0.5 sm:gap-1 truncate w-full">
-          <h1 className="nav-title-elegant text-[11px] sm:text-sm md:text-base lg:text-lg xl:text-xl font-bold leading-tight tracking-[0.08em] bg-gradient-to-r from-cyan-300 via-blue-300 to-cyan-400 bg-clip-text text-transparent animate-title-glow drop-shadow-lg" style={{ 
+          <h1 className="nav-title-elegant text-[11px] sm:text-sm md:text-base lg:text-lg xl:text-xl font-bold leading-tight tracking-[0.08em] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 bg-clip-text text-transparent animate-title-glow drop-shadow-lg" style={{ 
             backgroundSize: '400% auto',
-            filter: 'drop-shadow(0 0 8px rgba(56, 214, 255, 0.4)) drop-shadow(0 0 16px rgba(0, 200, 255, 0.2))'
+            filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.42)) drop-shadow(0 0 20px rgba(168, 85, 247, 0.18))'
           }}>
             NTP Precision Monitoring Dashboard
           </h1>
-          <div className="hidden sm:flex items-center gap-1 text-[8px] md:text-[9px] text-cyan-200/50 tracking-widest uppercase font-mono">
-            <span className="inline-block w-1 h-1 rounded-full bg-cyan-400 animate-pulse"></span>
+          <div className="nav-subtitle hidden sm:flex items-center gap-1 text-[8px] md:text-[9px] text-violet-600/60 tracking-widest uppercase font-mono">
+            <span className="inline-block w-1 h-1 rounded-full bg-violet-500/90 animate-pulse"></span>
             <span>Global Synchronization Network</span>
-            <span className="inline-block w-1 h-1 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span className="inline-block w-1 h-1 rounded-full bg-fuchsia-500/90 animate-pulse"></span>
           </div>
         </div>
       </div>

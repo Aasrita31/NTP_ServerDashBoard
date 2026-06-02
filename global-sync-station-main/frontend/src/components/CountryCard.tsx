@@ -154,7 +154,7 @@ export function CountryCard(p: CountryCardProps & { compareMode?: boolean; onCom
         setOpen(true);
       }}
       className={
-        `glass glass-hover country-card rounded-xl p-5 relative overflow-hidden group text-left w-full focus:outline-none ` +
+        `glass glass-hover elegant-bright-surface country-card rounded-xl p-5 relative overflow-hidden group text-left w-full focus:outline-none ` +
         (compareSelected ? "ring-4 ring-primary/40" : "focus-visible:ring-2 focus-visible:ring-cyan-glow/60")
       }
     >

@@ -5,7 +5,7 @@ import {
 
 export function ChartCard({ title, children, note }: { title: string; children: React.ReactNode; note?: string }) {
   return (
-    <div className="glass rounded-2xl p-4">
+    <div className="glass elegant-bright-surface rounded-2xl p-4">
       <div className="flex items-center justify-between gap-4 mb-3">
         <div>
           <div className="text-[10px] font-mono tracking-[0.35em] text-muted-foreground">{title}</div>
@@ -25,7 +25,17 @@ export function LineMetricChart({ data, xKey = 't', yKey = 'v', stroke = 'var(--
         <XAxis dataKey={xKey} tick={{ fill: 'var(--muted-foreground)' }} />
         <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
         <Tooltip />
-        <Line type="monotone" dataKey={yKey} stroke={stroke} strokeWidth={2.5} dot={false} />
+        <Line
+          type="monotone"
+          dataKey={yKey}
+          stroke={stroke}
+          strokeWidth={2.5}
+          dot={false}
+          isAnimationActive
+          animationBegin={0}
+          animationDuration={1400}
+          animationEasing="ease-out"
+        />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -45,7 +55,16 @@ export function AreaMetricChart({ data, xKey = 't', yKey = 'v', stroke = 'var(--
         <XAxis dataKey={xKey} tick={{ fill: 'var(--muted-foreground)' }} />
         <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
         <Tooltip />
-        <Area type="monotone" dataKey={yKey} stroke={stroke} fill="url(#areaFill)" />
+        <Area
+          type="monotone"
+          dataKey={yKey}
+          stroke={stroke}
+          fill="url(#areaFill)"
+          isAnimationActive
+          animationBegin={0}
+          animationDuration={1400}
+          animationEasing="ease-out"
+        />
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -59,7 +78,7 @@ export function BarMetricChart({ data, xKey = 'name', yKey = 'value', height = 2
         <XAxis dataKey={xKey} tick={{ fill: 'var(--muted-foreground)' }} />
         <YAxis tick={{ fill: 'var(--muted-foreground)' }} />
         <Tooltip />
-        <Bar dataKey={yKey} fill="var(--cyan-glow)">
+        <Bar dataKey={yKey} fill="var(--cyan-glow)" isAnimationActive animationBegin={0} animationDuration={1200} animationEasing="ease-out">
           {data.map((_: any, index: number) => <Cell key={index} fill={index % 2 ? '#16c3ff' : '#56f0ff'} />)}
         </Bar>
       </BarChart>
@@ -71,7 +90,18 @@ export function PieMetricChart({ data, height = 220 }: { data: { name: string; v
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          innerRadius={50}
+          outerRadius={80}
+          paddingAngle={2}
+          isAnimationActive
+          animationBegin={0}
+          animationDuration={1200}
+          animationEasing="ease-out"
+        >
           {data.map((entry, index) => <Cell key={index} fill={entry.color} />)}
         </Pie>
         <Tooltip />

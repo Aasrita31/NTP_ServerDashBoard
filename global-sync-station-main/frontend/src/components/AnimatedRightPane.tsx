@@ -17,7 +17,7 @@ function Sparkline({data, color='var(--cyan-glow)'}: {data: number[]; color?: st
 
 function MetricCard({title, value, spark}:{title:string; value:string; spark:number[]}){
   return (
-    <div className="glass rounded-xl p-4 flex flex-col gap-2 w-[220px] animate-fade-up">
+    <div className="glass elegant-bright-surface metric-card-bright rounded-xl p-4 flex flex-col gap-2 w-[220px] animate-fade-up">
       <div className="text-[10px] font-mono tracking-wider text-muted-foreground">{title}</div>
       <div className="flex items-center justify-between">
         <div className="text-lg font-mono font-bold text-cyan-glow tabular-nums">{value}</div>
@@ -66,7 +66,7 @@ export default function AnimatedRightPane({
           <MetricCard title="System Memory" value={`${Math.round(mem[mem.length-1])}%`} spark={mem} />
         </div>
 
-        <div className="glass rounded-xl p-3 mt-2 overflow-hidden">
+        <div className="glass elegant-bright-surface rounded-xl p-3 mt-2 overflow-hidden">
           <div className="text-[10px] font-mono tracking-wider text-muted-foreground">Recent Activity</div>
           <div className="mt-2 text-[12px] font-mono text-cyan-glow space-y-2">
             <div className="activity-ticker h-20 relative overflow-hidden">

@@ -22,7 +22,7 @@ export function WorldMapBg({ variant = 'darker' }: { variant?: 'darker' | 'brigh
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <svg viewBox="0 0 1000 500" className="absolute inset-0 w-full h-full" style={{ opacity: svgOpacity }}>
+      <svg viewBox="0 0 1000 500" preserveAspectRatio="none" className="absolute inset-0 block w-full h-full" style={{ opacity: svgOpacity }}>
         <defs>
           <radialGradient id="globe-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor={brighter ? '#00d9ff' : 'oklch(0.85 0.18 78)'} stopOpacity={brighter ? 0.24 : 0.4} />
@@ -50,6 +50,15 @@ export function WorldMapBg({ variant = 'darker' }: { variant?: 'darker' | 'brigh
         <rect width="1000" height="500" fill="url(#dots)" mask="url(#continents)" />
       </svg>
 
+      {brighter ? (
+        <>
+          <div className="absolute -top-20 left-[8%] h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl animate-bg-float-slow" />
+          <div className="absolute top-[18%] right-[4%] h-80 w-80 rounded-full bg-sky-300/18 blur-3xl animate-bg-float-reverse" />
+          <div className="absolute inset-x-0 top-0 h-full bg-[linear-gradient(180deg,rgba(255,255,255,0.26),rgba(255,255,255,0.04)_28%,transparent_70%)] opacity-70" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:48px_48px] opacity-35 animate-grid-drift" />
+        </>
+      ) : null}
+
       {/* Satellite markers */}
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 500" preserveAspectRatio="none" style={{ opacity: brighter ? 0.55 : 0.4 }}>
         {[
@@ -63,7 +72,7 @@ export function WorldMapBg({ variant = 'darker' }: { variant?: 'darker' | 'brigh
       </svg>
 
       {/* Particles (client-only positions) */}
-      <div suppressHydrationWarning>
+      <div className="absolute inset-0" suppressHydrationWarning>
         {particles.map((p, i) => (
           <div
             key={i}
@@ -82,7 +91,7 @@ export function WorldMapBg({ variant = 'darker' }: { variant?: 'darker' | 'brigh
       </div>
 
       {/* Vignette */}
-      <div className="absolute inset-0" style={{ background: brighter ? `radial-gradient(ellipse at center, transparent 64%, rgba(250,204,21,${vignetteOpacity}) 100%)` : `radial-gradient(ellipse at center, transparent 62%, rgba(139,92,246,${vignetteOpacity}) 100%)` }} />
+      <div className="absolute inset-0" style={{ background: brighter ? `radial-gradient(ellipse at center, rgba(255,255,255,0.10) 0%, transparent 54%, rgba(250,204,21,${vignetteOpacity}) 100%)` : `radial-gradient(ellipse at center, transparent 62%, rgba(139,92,246,${vignetteOpacity}) 100%)` }} />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { WorldMapBg } from "@/components/WorldMapBg";
-import { AnalogClock } from "@/components/AnalogClock";
 import { DigitalUTC } from "@/components/DigitalUTC";
 import { CountryCard, type CountryCardProps } from "@/components/CountryCard";
 import { Activity, Radio, Shield, Satellite } from "lucide-react";
@@ -41,6 +40,8 @@ const COUNTRIES = [
   { flag: "🇮🇹", iso: "it", name: "Italy",          code: "ITA", tz: "Europe/Rome",                    offsetLabel: "UTC +01:00", accent: "#008C45", peer: "ntp1.inrim.it",         refid: ".CSm.",  stratum: 1, baseRtt:  18.6, baseDrift:  0.05, poll: 7 },
   { flag: "🇪🇸", iso: "es", name: "Spain",          code: "ESP", tz: "Europe/Madrid",                  offsetLabel: "UTC +01:00", accent: "#AA151B", peer: "hora.roa.es",           refid: ".GPS.",  stratum: 1, baseRtt:  22.3, baseDrift:  0.07, poll: 7 },
   { flag: "🇳🇱", iso: "nl", name: "Netherlands",    code: "NLD", tz: "Europe/Amsterdam",               offsetLabel: "UTC +01:00", accent: "#AE1C28", peer: "ntp.time.nl",           refid: ".PPS.",  stratum: 1, baseRtt:   8.4, baseDrift: -0.03, poll: 7 },
+  { flag: "🇫🇮", iso: "fi", name: "Finland",        code: "FIN", tz: "Europe/Helsinki",                offsetLabel: "UTC +02:00", accent: "#003580", peer: "ntp1.mikes.fi",         refid: ".PPS.",  stratum: 1, baseRtt:  31.6, baseDrift:  0.04, poll: 7 },
+  { flag: "🇵🇱", iso: "pl", name: "Poland",         code: "POL", tz: "Europe/Warsaw",                 offsetLabel: "UTC +01:00", accent: "#DC143C", peer: "ntp.man.poznan.pl",     refid: ".GPS.",  stratum: 1, baseRtt:  25.8, baseDrift:  0.06, poll: 7 },
   { flag: "🇨🇭", iso: "ch", name: "Switzerland",    code: "CHE", tz: "Europe/Zurich",                  offsetLabel: "UTC +01:00", accent: "#DA291C", peer: "ntp11.metas.ch",        refid: ".CSm.",  stratum: 1, baseRtt:  14.1, baseDrift:  0.02, poll: 7 },
   { flag: "🇸🇪", iso: "se", name: "Sweden",         code: "SWE", tz: "Europe/Stockholm",               offsetLabel: "UTC +01:00", accent: "#006AA7", peer: "ntp1.sp.se",            refid: ".CSm.",  stratum: 1, baseRtt:  26.8, baseDrift:  0.06, poll: 7 },
   { flag: "🇳🇴", iso: "no", name: "Norway",         code: "NOR", tz: "Europe/Oslo",                    offsetLabel: "UTC +01:00", accent: "#BA0C2F", peer: "ntp.justervesenet.no",  refid: ".PPS.",  stratum: 1, baseRtt:  29.7, baseDrift:  0.09, poll: 8 },
@@ -58,7 +59,6 @@ const COUNTRIES = [
   { flag: "🇵🇭", iso: "ph", name: "Philippines",    code: "PHL", tz: "Asia/Manila",                    offsetLabel: "UTC +08:00", accent: "#0038A8", peer: "ph.pool.ntp.org",       refid: "0xc104", stratum: 2, baseRtt: 248.6, baseDrift:  0.36, poll: 9 },
   { flag: "�🇾", iso: "my", name: "Malaysia",       code: "MYS", tz: "Asia/Kuala_Lumpur",              offsetLabel: "UTC +08:00", accent: "#003DA5", peer: "my.pool.ntp.org",       refid: ".GPS.",  stratum: 2, baseRtt: 224.2, baseDrift:  0.32, poll: 9 },
   { flag: "�🇻🇳", iso: "vn", name: "Vietnam",        code: "VNM", tz: "Asia/Ho_Chi_Minh",               offsetLabel: "UTC +07:00", accent: "#DA251D", peer: "vn.pool.ntp.org",       refid: "0x7f21", stratum: 2, baseRtt: 212.4, baseDrift:  0.31, poll: 9 },
-  { flag: "🇵🇰", iso: "pk", name: "Pakistan",       code: "PAK", tz: "Asia/Karachi",                   offsetLabel: "UTC +05:00", accent: "#01411C", peer: "pk.pool.ntp.org",       refid: "0x4429", stratum: 2, baseRtt: 116.3, baseDrift:  0.20, poll: 9 },
   { flag: "🇳🇿", iso: "nz", name: "New Zealand",    code: "NZL", tz: "Pacific/Auckland",               offsetLabel: "UTC +13:00", accent: "#00247D", peer: "ntp.massey.ac.nz",      refid: ".GPS.",  stratum: 1, baseRtt: 318.2, baseDrift:  0.48, poll: 9 },
 ] as const;
 
@@ -112,7 +112,17 @@ function StatChip({ icon: Icon, label, value }: { icon: any; label: string; valu
 function Index() {
   const INITIAL_VISIBLE_NODES = 8;
   const initialData = Route.useLoaderData();
-  const [bgVariant, setBgVariant] = useState<'darker' | 'brighter'>('darker');
+  const [bgVariant, setBgVariant] = useState<'darker' | 'brighter'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('bgVariant') as 'darker' | 'brighter' | null;
+        if (saved === 'darker' || saved === 'brighter') return saved;
+      } catch {
+        // ignore storage failures
+      }
+    }
+    return 'darker';
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -134,49 +144,47 @@ function Index() {
   }, [bgVariant]);
 
   const mainStyle = useMemo(() => {
-    // Use a warm yellow theme for highlights while preserving background variants.
-    const yellow = '#f59e0b';
-    const base: React.CSSProperties = {
-      '--primary': yellow,
-      '--accent': yellow,
-      '--ring': yellow,
-      '--cyan-glow': yellow,
-      '--neon': yellow,
-      '--online': yellow,
-    } as React.CSSProperties;
-
     if (bgVariant === 'brighter') {
-      return {
-        background:
-          'radial-gradient(circle at top left, rgba(0,217,255,0.12), transparent 34%), radial-gradient(circle at bottom right, rgba(250,204,21,0.10), transparent 28%), linear-gradient(180deg, #ffffff 0%, #f4f7fb 56%, #eef4fb 100%)',
-        color: '#0f172a',
-        '--background': '#ffffff',
+      const bright: React.CSSProperties = {
+        '--primary': '#1dbcf7',
+        '--accent': '#3b82f6',
+        '--ring': '#22d3ee',
+        '--cyan-glow': '#2dd4ff',
+        '--neon': '#60a5fa',
+        '--online': '#14b8a6',
+        '--background': '#f8fcff',
         '--foreground': '#0f172a',
-        '--card': 'rgba(255,255,255,0.88)',
+        '--card': 'rgba(255,255,255,0.72)',
         '--card-foreground': '#0f172a',
-        '--popover': 'rgba(255,255,255,0.96)',
+        '--popover': 'rgba(255,255,255,0.92)',
         '--popover-foreground': '#0f172a',
-        '--surface': 'rgba(255,255,255,0.75)',
-        '--surface-container-lowest': 'rgba(255,255,255,0.86)',
-        '--surface-container-low': 'rgba(249,250,252,0.88)',
-        '--surface-container': 'rgba(244,247,251,0.94)',
-        '--surface-container-high': 'rgba(238,244,251,0.96)',
-        '--surface-container-highest': 'rgba(229,238,248,0.98)',
-        '--on-surface-variant': '#475569',
-        '--outline-variant': 'rgba(15,23,42,0.10)',
-        '--secondary-container': 'rgba(14,165,164,0.14)',
-        '--on-secondary-container': '#0f172a',
-        '--primary-container': 'rgba(0,217,255,0.20)',
-        '--on-primary-container': '#0f172a',
         '--muted': 'rgba(15,23,42,0.04)',
         '--muted-foreground': 'rgba(15,23,42,0.58)',
-        '--border': 'rgba(15,23,42,0.08)',
+        '--border': 'rgba(34,211,238,0.14)',
         '--input': 'rgba(15,23,42,0.06)',
-        ...base,
+        '--secondary-container': 'rgba(34,211,238,0.18)',
+        '--on-secondary-container': '#0f172a',
+        '--primary-container': 'rgba(37,99,235,0.16)',
+        '--on-primary-container': '#0f172a',
+        '--surface': 'rgba(255,255,255,0.58)',
+        '--surface-container-lowest': 'rgba(255,255,255,0.82)',
+        '--surface-container-low': 'rgba(250,253,255,0.84)',
+        '--surface-container': 'rgba(244,249,255,0.90)',
+        '--surface-container-high': 'rgba(235,244,252,0.92)',
+        '--surface-container-highest': 'rgba(225,237,248,0.95)',
+        '--on-surface-variant': '#475569',
+        '--outline-variant': 'rgba(15,23,42,0.10)',
+        '--grid': 'rgba(34,211,238,0.08)',
+      } as React.CSSProperties;
+      return {
+        background:
+          'radial-gradient(circle at 18% 16%, rgba(45,212,255,0.18), transparent 22%), radial-gradient(circle at 82% 10%, rgba(59,130,246,0.12), transparent 22%), radial-gradient(circle at 50% 110%, rgba(15,118,255,0.10), transparent 36%), linear-gradient(180deg, #fbfdff 0%, #eef7ff 46%, #eaf4ff 100%)',
+        color: '#0f172a',
+        ...bright,
       } as React.CSSProperties;
     }
 
-    return base;
+    return {} as React.CSSProperties;
   }, [bgVariant]);
   const [live, setLive] = useState<LivePayload | null>(null);
   const [apiState, setApiState] = useState<"connecting" | "live" | "offline">("connecting");
@@ -486,7 +494,12 @@ function Index() {
   }, [officeBaseMs]);
 
   return (
-    <div className={`relative min-h-screen overflow-hidden ${bgVariant === 'brighter' ? 'theme-bright' : 'theme-dark'}`} style={mainStyle} data-theme={bgVariant}>
+    <div
+      className={`relative min-h-screen overflow-hidden ${bgVariant === 'brighter' ? 'theme-bright' : 'theme-dark'}`}
+      style={mainStyle}
+      data-theme={bgVariant}
+      data-sidebar-state={sidebarCollapsed ? 'collapsed' : 'expanded'}
+    >
       <TopNav
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
         sidebarOpen={sidebarOpen}
@@ -501,56 +514,48 @@ function Index() {
       />
       <WorldMapBg variant={bgVariant} />
 
-      <main className={`relative z-10 pt-24 px-6 lg:px-10 py-4 min-h-screen transition-[margin] duration-300 ${sidebarCollapsed ? 'lg:ml-[92px]' : 'lg:ml-[280px]'}`}>
-      <div className="max-w-[1800px] mx-auto">
+      <main className={`relative z-10 pt-24 px-3 sm:px-6 lg:px-8 xl:px-10 py-4 min-h-screen transition-[margin,padding] duration-300 ${sidebarCollapsed ? 'lg:ml-[92px]' : 'lg:ml-[280px]'}`}>
+      <div className="max-w-[1800px] mx-auto min-w-0">
         {/* Top bar */}
-        <header className="dashboard-hero flex flex-col items-center mb-4 sm:mb-6 text-center">
+        <header className="dashboard-hero flex flex-col items-center mb-4 sm:mb-6 text-center px-2 sm:px-4 min-w-0">
           <div className="hero-orbit" aria-hidden />
-          <h1 className="animate-title-glow mt-1 sm:mt-2 text-xl sm:text-3xl md:text-4xl font-extrabold tracking-[0.12em] sm:tracking-[0.15em] bg-gradient-to-r from-cyan-300 via-cyan-200 to-blue-300 bg-clip-text text-transparent" style={{ 
-            backgroundSize: '200% auto',
-            filter: 'drop-shadow(0 0 10px rgba(56, 214, 255, 0.5)) drop-shadow(0 0 20px rgba(0, 200, 255, 0.3))'
+          <h1 className="animate-title-glow mt-1 sm:mt-2 font-black tracking-[0.08em] sm:tracking-[0.1em] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 bg-clip-text text-transparent bright-hero-title max-w-[min(100%,72rem)] whitespace-normal text-balance text-[clamp(1.15rem,2.2vw,4rem)] leading-[0.95] px-2" style={{ 
+            backgroundSize: '220% auto',
+            filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.38)) drop-shadow(0 0 28px rgba(168, 85, 247, 0.24))',
+            textWrap: 'balance',
           }}>PRECISION • TIME • COORDINATION • CENTER</h1>
           <div className="flex items-center gap-2 mt-2 sm:mt-3">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-pulse"></span>
-            <div className="text-[10px] sm:text-[12px] text-cyan-300/80 font-mono tracking-[0.25em] sm:tracking-[0.3em] uppercase font-semibold">Global Synchronization Network</div>
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-pulse"></span>
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-pulse shadow-[0_0_12px_rgba(168,85,247,0.55)]"></span>
+            <div className="text-[10px] sm:text-[12px] text-violet-600/75 font-mono tracking-[0.3em] sm:tracking-[0.38em] uppercase font-semibold bright-hero-subtitle">Global Synchronization Network</div>
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-pulse shadow-[0_0_12px_rgba(168,85,247,0.55)]"></span>
           </div>
         </header>
 
         {/* Premium Synchronization Dashboard - Left/Right Clock Layout */}
-        <section className="mt-2 mb-8 sm:mb-12 w-full">
+        <section className="mt-2 mb-8 sm:mb-12 w-full min-w-0 light-sync-stage">
           {/* Master UTC Clock (Left) | Sync Comparison (Center) | IITTNIF Office Clock (Right) */}
-          <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 sm:gap-8 md:gap-10 lg:gap-6 w-full">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.72fr)_minmax(0,1.12fr)] items-stretch gap-6 sm:gap-8 md:gap-10 w-full min-w-0">
             
             {/* LEFT: Master UTC Clock */}
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[280px]">
-              <div className="relative w-full max-w-sm">
-                {/* Cyan glow ring */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-transparent to-blue-500/10 blur-lg" style={{ width: '90%', height: '90%', margin: 'auto' }} />
-                
-                <div className="glass rounded-2xl border border-cyan-glow/30 p-4 sm:p-6 text-center bg-gradient-to-br from-background/50 to-background/30">
+            <div className="flex flex-col items-center justify-center min-h-[260px] xl:min-h-[320px] min-w-0">
+              <div className="relative w-full max-w-[720px] bright-clock-area min-w-0">
+                <div className="absolute inset-8 rounded-full bg-[radial-gradient(circle,rgba(45,212,255,0.28)_0%,rgba(59,130,246,0.14)_34%,transparent_72%)] blur-2xl opacity-80" />
+
+                <div className="glass bright-clock-card overflow-visible rounded-[28px] border border-cyan-200/35 p-5 sm:p-6 lg:p-8 text-center bg-gradient-to-br from-white/80 via-white/55 to-sky-50/75 min-w-0">
                   <div className="text-[9px] sm:text-[10px] font-mono tracking-[0.4em] text-cyan-glow font-bold mb-2 sm:mb-3">MASTER • UTC</div>
                   
-                  {/* Analog clock */}
-                  <div className="flex justify-center mb-3 sm:mb-4">
-                    <div className="scale-75 sm:scale-90 lg:scale-100 origin-center">
-                      <AnalogClock epochMs={masterDisplayMs} displayMs={masterDisplayMs} />
-                    </div>
-                  </div>
-                  
-                  {/* Digital display */}
-                  <div className="text-center">
-                    <DigitalUTC epochMs={masterDisplayMs} displayMs={masterDisplayMs} />
-                    <div className="mt-2 text-[8px] sm:text-[9px] text-cyan-glow/60 font-mono tracking-[0.2em]">UTC REFERENCE</div>
+                  {/* Digital display (replaces analog) */}
+                  <div className="text-center bright-digital-stage">
+                    <DigitalUTC variant="large" epochMs={masterDisplayMs} displayMs={masterDisplayMs} heading="◆ MASTER UTC ◆" footer="COORDINATED UNIVERSAL TIME" />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* CENTER: Synchronization Comparison Indicator */}
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[280px]">
+            <div className="flex flex-col items-center justify-center min-h-[260px] xl:min-h-[320px] min-w-0">
               {/* Animated sync beam line */}
-              <div className="absolute hidden lg:block h-px w-full max-w-sm mx-auto" style={{
+              <div className="absolute hidden xl:block h-px w-full max-w-[720px] mx-auto" style={{
                 background: 'linear-gradient(90deg, transparent, oklch(0.85_0.18_78/0.4) 20%, oklch(0.85_0.18_78/0.8) 50%, oklch(0.85_0.18_78/0.4) 80%, transparent)',
                 animation: 'pulse 2s ease-in-out infinite',
                 top: '50%',
@@ -558,61 +563,54 @@ function Index() {
                 transform: 'translateX(-50%)'
               }} />
               
-              <div className="relative w-full max-w-sm">
-                <div className="glass rounded-2xl border border-cyan-glow/20 p-4 sm:p-6 bg-gradient-to-br from-background/40 to-background/20">
+              <div className="relative w-full max-w-[420px] xl:max-w-[360px] min-w-0">
+                      <div className="glass bright-sync-console rounded-[28px] border border-cyan-200/30 p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-white/78 via-white/58 to-sky-50/70 min-w-0">
                   <div className="text-[9px] sm:text-[10px] font-mono tracking-[0.4em] text-cyan-glow/80 font-bold mb-4 sm:mb-6">SYNCHRONIZATION</div>
                   
                   {/* Delay card */}
-                  <div className="mb-4 p-3 rounded-lg border border-cyan-glow/15 bg-cyan-glow/5">
+                    <div className={`mb-4 p-3 rounded-2xl border border-cyan-200/30 ${bgVariant === 'brighter' ? 'bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(34,211,238,0.06)]' : 'bg-transparent shadow-none'}`}>
                     <div className="text-[8px] sm:text-[9px] font-mono tracking-[0.3em] text-muted-foreground mb-1">DELAY</div>
                     <div className="flex items-baseline justify-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${delayState.dot} shadow-[0_0_8px_currentColor]`} />
-                      <div className="text-xl sm:text-2xl font-mono font-bold text-cyan-glow tabular-nums">{formatDelta(officeDelayMs)}</div>
+                            <div className={`h-2.5 w-2.5 rounded-full ${delayState.dot} shadow-[0_0_14px_currentColor] animate-pulse`} />
+                            <div className="text-xl sm:text-2xl font-mono font-bold text-cyan-600 tabular-nums">{formatDelta(officeDelayMs)}</div>
                     </div>
-                    <div className={`mt-2 text-[8px] sm:text-[9px] font-mono ${delayState.tone.split(' ')[0]}`}>{delayState.label}</div>
+                          <div className={`mt-2 text-[8px] sm:text-[9px] font-mono ${delayState.tone.split(' ')[0]} tracking-[0.22em]`}>{delayState.label}</div>
                   </div>
                   
                   {/* Drift card */}
-                  <div className="p-3 rounded-lg border border-cyan-glow/15 bg-cyan-glow/5">
+                    <div className={`p-3 rounded-2xl border border-cyan-200/30 ${bgVariant === 'brighter' ? 'bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(34,211,238,0.06)]' : 'bg-transparent shadow-none'}`}>
                     <div className="text-[8px] sm:text-[9px] font-mono tracking-[0.3em] text-muted-foreground mb-1">DRIFT</div>
                     <div className="flex items-baseline justify-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${driftState.dot} shadow-[0_0_8px_currentColor]`} />
-                      <div className="text-xl sm:text-2xl font-mono font-bold text-cyan-glow tabular-nums">{formatDelta(officeDriftMs)}</div>
+                            <div className={`h-2.5 w-2.5 rounded-full ${driftState.dot} shadow-[0_0_14px_currentColor] animate-pulse`} />
+                            <div className="text-xl sm:text-2xl font-mono font-bold text-cyan-600 tabular-nums">{formatDelta(officeDriftMs)}</div>
                     </div>
-                    <div className={`mt-2 text-[8px] sm:text-[9px] font-mono ${driftState.tone.split(' ')[0]}`}>{driftState.label}</div>
+                          <div className={`mt-2 text-[8px] sm:text-[9px] font-mono ${driftState.tone.split(' ')[0]} tracking-[0.22em]`}>{driftState.label}</div>
                   </div>
 
                   {/* Offset indicator */}
-                  <div className="mt-4 pt-3 border-t border-cyan-glow/10">
-                    <div className="text-[7px] sm:text-[8px] text-cyan-glow/50 font-mono">Offset</div>
-                    <div className="text-sm sm:text-base font-mono font-bold text-cyan-glow/90 mt-1">{formatDelta(utcDiffMs)}</div>
+                        <div className="mt-4 pt-3 border-t border-cyan-200/20">
+                          <div className="text-[7px] sm:text-[8px] text-cyan-600/55 font-mono tracking-[0.25em]">Offset</div>
+                          <div className="text-sm sm:text-base font-mono font-bold text-cyan-600 mt-1">{formatDelta(utcDiffMs)}</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* RIGHT: IITTNIF Office NTP Clock */}
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[280px]">
-              <div className="relative w-full max-w-sm">
-                {/* Blue glow ring */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/15 via-transparent to-blue-400/10 blur-lg" style={{ width: '90%', height: '90%', margin: 'auto' }} />
-                <div className="glass rounded-2xl border border-blue-400/40 p-4 sm:p-6 text-center bg-gradient-to-br from-background/50 to-background/30">
+            <div className="flex flex-col items-center justify-center min-h-[260px] xl:min-h-[320px] min-w-0">
+              <div className="relative w-full max-w-[720px] bright-clock-area min-w-0">
+                <div className="absolute inset-8 rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.26)_0%,rgba(45,212,255,0.12)_34%,transparent_72%)] blur-2xl opacity-80" />
+                <div className="glass bright-clock-card overflow-visible rounded-[28px] border border-sky-200/40 p-5 sm:p-6 lg:p-8 text-center bg-gradient-to-br from-white/80 via-white/60 to-sky-50/70 min-w-0">
                   <div className="text-[9px] sm:text-[10px] font-mono tracking-[0.4em] text-blue-400 font-bold mb-2 sm:mb-3">IITTNIF • NTP</div>
 
-                  {/* Analog clock */}
-                  <div className="flex justify-center mb-3 sm:mb-4">
-                    <div className="scale-75 sm:scale-90 lg:scale-100 origin-center">
-                      <AnalogClock epochMs={officeBaseMs ?? masterDisplayMs} displayMs={officeDisplayMs} />
-                    </div>
-                  </div>
-
-                  {/* Digital display */}
-                  <div className="text-center">
+                  {/* Digital display (replaces analog) */}
+                  <div className="text-center bright-digital-stage">
                     <DigitalUTC
+                      variant="large"
                       epochMs={officeBaseMs ?? masterDisplayMs}
                       displayMs={officeDisplayMs}
                       tone="blue"
-                      heading="◆ IITTNIF UTC SYNCHRONIZED ◆"
+                      heading="◆ IITTNIF UTC ◆"
                       footer={`IITTNIF SERVER UTC • ${officeData?.host ?? '10.26.13.44'}`}
                     />
                   </div>

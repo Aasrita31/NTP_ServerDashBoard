@@ -79,7 +79,7 @@ function OfficePage(){
             <span className="inline-block h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_10px_currentColor]" />
             <span>{officeStatus}</span>
           </div>
-          <div className="mt-4 rounded-2xl border border-cyan-glow/15 bg-cyan-glow/5 p-4">
+          <div className="mt-4">
             <DigitalUTC epochMs={officeEpochMs} />
             <div className="mt-3 text-[10px] font-mono tracking-[0.28em] text-cyan-glow/70">
               IITTNIF SERVER UTC • {officeHost}
