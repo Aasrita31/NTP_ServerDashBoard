@@ -35,7 +35,6 @@ COUNTRIES: list[dict] = [
     {"flag":"🇮🇩","iso":"id","name":"Indonesia",     "code":"IDN","tz":"Asia/Jakarta",                  "offsetLabel":"UTC +07:00","accent":"#FF0000","peer":"ntp.bmkg.go.id",       "refid":".GPS.", "stratum":1,"baseRtt":234.1,"baseDrift": 0.33,"poll":9},
     {"flag":"🇵🇭","iso":"ph","name":"Philippines",   "code":"PHL","tz":"Asia/Manila",                   "offsetLabel":"UTC +08:00","accent":"#0038A8","peer":"ph.pool.ntp.org",      "refid":"0xc104","stratum":2,"baseRtt":248.6,"baseDrift": 0.36,"poll":9},
     {"flag":"🇻🇳","iso":"vn","name":"Vietnam",       "code":"VNM","tz":"Asia/Ho_Chi_Minh",              "offsetLabel":"UTC +07:00","accent":"#DA251D","peer":"vn.pool.ntp.org",      "refid":"0x7f21","stratum":2,"baseRtt":212.4,"baseDrift": 0.31,"poll":9},
-    {"flag":"🇵🇰","iso":"pk","name":"Pakistan",      "code":"PAK","tz":"Asia/Karachi",                  "offsetLabel":"UTC +05:00","accent":"#01411C","peer":"pk.pool.ntp.org",      "refid":"0x4429","stratum":2,"baseRtt":116.3,"baseDrift": 0.20,"poll":9},
     {"flag":"🇳🇿","iso":"nz","name":"New Zealand",   "code":"NZL","tz":"Pacific/Auckland",              "offsetLabel":"UTC +13:00","accent":"#00247D","peer":"ntp.massey.ac.nz",     "refid":".GPS.", "stratum":1,"baseRtt":318.2,"baseDrift": 0.48,"poll":9},
 ]
 

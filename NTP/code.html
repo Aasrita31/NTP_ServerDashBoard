@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CHRONOS NTP v4.2 - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "tertiary": "#f3f5ff",
+                            "surface-bright": "#2c3a4c",
+                            "on-secondary-container": "#adb4ce",
+                            "tertiary-container": "#ccdaf3",
+                            "surface": "#051424",
+                            "on-tertiary-fixed": "#0d1c2f",
+                            "secondary-container": "#3f465c",
+                            "outline": "#849495",
+                            "primary": "#dbfcff",
+                            "surface-container": "#122131",
+                            "surface-dim": "#051424",
+                            "on-tertiary-container": "#515f75",
+                            "inverse-surface": "#d4e4fa",
+                            "on-primary-container": "#006970",
+                            "error": "#ffb4ab",
+                            "on-background": "#d4e4fa",
+                            "primary-fixed-dim": "#00dbe9",
+                            "inverse-on-surface": "#233143",
+                            "on-tertiary-fixed-variant": "#3a485c",
+                            "on-primary-fixed": "#002022",
+                            "surface-container-lowest": "#010f1f",
+                            "surface-variant": "#273647",
+                            "on-tertiary": "#233144",
+                            "on-surface": "#d4e4fa",
+                            "primary-container": "#00f0ff",
+                            "on-secondary-fixed": "#131b2e",
+                            "surface-container-high": "#1c2b3c",
+                            "on-surface-variant": "#b9cacb",
+                            "background": "#051424",
+                            "surface-container-highest": "#273647",
+                            "on-secondary-fixed-variant": "#3f465c",
+                            "error-container": "#93000a",
+                            "on-primary-fixed-variant": "#004f54",
+                            "primary-fixed": "#7df4ff",
+                            "tertiary-fixed-dim": "#b9c7e0",
+                            "secondary-fixed-dim": "#bec6e0",
+                            "tertiary-fixed": "#d5e3fd",
+                            "on-secondary": "#283044",
+                            "secondary": "#bec6e0",
+                            "on-primary": "#00363a",
+                            "surface-container-low": "#0d1c2d",
+                            "secondary-fixed": "#dae2fd",
+                            "outline-variant": "#3b494b",
+                            "inverse-primary": "#006970",
+                            "on-error-container": "#ffdad6",
+                            "surface-tint": "#00dbe9",
+                            "on-error": "#690005"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.125rem",
+                            "lg": "0.25rem",
+                            "xl": "0.5rem",
+                            "full": "0.75rem"
+                    },
+                    "spacing": {
+                            "margin-mobile": "16px",
+                            "container-max": "1440px",
+                            "margin-desktop": "32px",
+                            "gutter": "16px",
+                            "unit": "4px"
+                    },
+                    "fontFamily": {
+                            "label-mono": [
+                                    "JetBrains Mono"
+                            ],
+                            "headline-md": [
+                                    "Inter"
+                            ],
+                            "body-md": [
+                                    "Inter"
+                            ],
+                            "display-time": [
+                                    "JetBrains Mono"
+                            ],
+                            "headline-lg-mobile": [
+                                    "Inter"
+                            ],
+                            "label-caps": [
+                                    "Inter"
+                            ],
+                            "body-lg": [
+                                    "Inter"
+                            ],
+                            "headline-lg": [
+                                    "Inter"
+                            ]
+                    },
+                    "fontSize": {
+                            "label-mono": [
+                                    "13px",
+                                    {
+                                            "lineHeight": "16px",
+                                            "fontWeight": "500"
+                                    }
+                            ],
+                            "headline-md": [
+                                    "24px",
+                                    {
+                                            "lineHeight": "32px",
+                                            "fontWeight": "600"
+                                    }
+                            ],
+                            "body-md": [
+                                    "14px",
+                                    {
+                                            "lineHeight": "20px",
+                                            "fontWeight": "400"
+                                    }
+                            ],
+                            "display-time": [
+                                    "48px",
+                                    {
+                                            "lineHeight": "1.1",
+                                            "letterSpacing": "-0.02em",
+                                            "fontWeight": "600"
+                                    }
+                            ],
+                            "headline-lg-mobile": [
+                                    "24px",
+                                    {
+                                            "lineHeight": "32px",
+                                            "fontWeight": "600"
+                                    }
+                            ],
+                            "label-caps": [
+                                    "11px",
+                                    {
+                                            "lineHeight": "16px",
+                                            "letterSpacing": "0.08em",
+                                            "fontWeight": "700"
+                                    }
+                            ],
+                            "body-lg": [
+                                    "16px",
+                                    {
+                                            "lineHeight": "24px",
+                                            "fontWeight": "400"
+                                    }
+                            ],
+                            "headline-lg": [
+                                    "32px",
+                                    {
+                                            "lineHeight": "40px",
+                                            "letterSpacing": "-0.01em",
+                                            "fontWeight": "600"
+                                    }
+                            ]
+                    }
+            },
+                },
+        }
+    </script>
+<style>
+        .pulse-text {
+            animation: pulse-glow 1.5s infinite;
+        }
+        @keyframes pulse-glow {
+            0% { text-shadow: 0 0 5px rgba(0, 240, 255, 0.2); }
+            50% { text-shadow: 0 0 15px rgba(0, 240, 255, 0.6); }
+            100% { text-shadow: 0 0 5px rgba(0, 240, 255, 0.2); }
+        }
+        .clock-panel {
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(5, 20, 36, 0.95) 100%);
+        }
+        @keyframes flowingFabric {
+            0% { transform: scale(1.1) translateX(-2%) translateY(-1%) skewX(1deg); }
+            50% { transform: scale(1.15) translateX(1%) translateY(1%) skewX(-1deg); }
+            100% { transform: scale(1.1) translateX(-2%) translateY(-1%) skewX(1deg); }
+        }
+        .flag-bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
+            animation: flowingFabric 6s infinite ease-in-out;
+            opacity: 0.6;
+            background-size: cover;
+        }
+        .glass-overlay {
+            background: rgba(5, 20, 36, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex font-body-md">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-screen py-margin-desktop bg-surface-container dark:bg-surface-container text-primary dark:text-primary docked full-height left-0 w-64 border-r border-outline-variant dark:border-outline-variant z-10 shrink-0">
+<div class="px-4 mb-8">
+<div class="font-label-caps text-label-caps font-bold text-primary mb-6">SYSTEM ADMIN</div>
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant overflow-hidden">
+<span class="material-symbols-outlined text-on-surface-variant">person</span>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-primary">NOC Operator Profile</div>
+<div class="font-body-md text-body-md text-on-surface-variant">Precision Node #04</div>
+</div>
+</div>
+<button class="w-full bg-primary-container text-on-primary-fixed-variant font-label-caps text-label-caps py-2 rounded font-bold hover:bg-primary transition-colors">FORCE RESYNC</button>
+</div>
+<nav class="flex-1 flex flex-col gap-1 px-2 font-label-caps text-label-caps">
+<a class="bg-secondary-container text-primary border-r-4 border-primary-fixed-dim px-4 py-3 flex items-center gap-3 Active: opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+                System Status
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-variant dark:hover:bg-surface-variant transition-all Active: opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined">database</span>
+                Log Explorer
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-variant dark:hover:bg-surface-variant transition-all Active: opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined">settings_input_component</span>
+                Network Config
+            </a>
+</nav>
+<div class="mt-auto px-2 pt-4 border-t border-outline-variant">
+<nav class="flex flex-col gap-1 font-label-caps text-label-caps">
+<a class="text-on-surface-variant hover:bg-surface-variant px-4 py-3 flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+                    Documentation
+                </a>
+<a class="text-on-surface-variant hover:bg-surface-variant px-4 py-3 flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined">support_agent</span>
+                    Support
+                </a>
+</nav>
+</div>
+</aside>
+<div class="flex-1 flex flex-col min-w-0">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-margin-desktop h-16 bg-surface dark:bg-surface text-primary dark:text-primary docked full-width top-0 border-b border-outline-variant dark:border-outline-variant z-10 shrink-0">
+<div class="font-headline-md text-headline-md font-bold text-primary tracking-tight">CHRONOS NTP v4.2</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex gap-6 font-label-caps text-label-caps h-full items-center">
+<div class="text-on-surface-variant font-label-caps text-label-caps">Uptime: 99.999%</div>
+<div class="text-on-surface-variant font-label-caps text-label-caps">Sync: STRATUM-1</div>
+</nav>
+<div class="flex gap-4">
+<button class="hover:text-primary-fixed-dim transition-colors duration-200 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:text-primary-fixed-dim transition-colors duration-200 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">settings_ethernet</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 p-margin-mobile md:p-margin-desktop overflow-y-auto">
+<div class="max-w-[1440px] mx-auto space-y-8">
+<!-- Precision Clocks Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+<!-- Local Clock -->
+<div class="clock-panel border border-outline-variant rounded-lg p-6 relative group hover:border-primary-container/30 transition-colors duration-300">
+<div class="flex justify-between items-start mb-8">
+<div class="font-label-caps text-label-caps text-on-surface-variant">LOCAL NTP SERVER TIME</div>
+<div class="bg-primary-container/10 text-primary-container px-2 py-1 rounded font-label-caps text-label-caps border border-primary-container/20 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+                                STRATUM-1
+                            </div>
+</div>
+<div class="font-display-time text-display-time text-primary-container pulse-text tracking-tighter" id="localTimeDisplay">
+                            00:00:00<span class="text-headline-lg text-primary-container/60 ml-2">.000</span>
+</div>
+<div class="mt-4 flex gap-4 text-label-mono font-label-mono text-on-surface-variant">
+<div>OFFSET: <span class="text-primary-container">+0.012ms</span></div>
+<div>DELAY: <span class="text-primary-container">0.450ms</span></div>
+</div>
+</div>
+<!-- UTC Clock -->
+<div class="clock-panel border border-outline-variant rounded-lg p-6 relative group hover:border-primary-container/30 transition-colors duration-300">
+<div class="flex justify-between items-start mb-8">
+<div class="font-label-caps text-label-caps text-on-surface-variant">COORDINATED UNIVERSAL TIME (UTC)</div>
+<div class="bg-secondary-container/30 text-secondary-fixed px-2 py-1 rounded font-label-caps text-label-caps border border-outline-variant">
+                                REFERENCE
+                            </div>
+</div>
+<div class="font-display-time text-display-time text-white tracking-tighter" id="utcTimeDisplay">
+                            00:00:00<span class="text-headline-lg text-white/60 ml-2">.000</span>
+</div>
+<div class="mt-4 flex gap-4 text-label-mono font-label-mono text-on-surface-variant">
+<div>SOURCE: <span class="text-secondary-fixed">GPS/PPS</span></div>
+<div>JITTER: <span class="text-secondary-fixed">0.005ms</span></div>
+</div>
+</div>
+</div>
+<!-- Global Monitor Grid -->
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container">public</span>
+                        Global Monitor
+                    </h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-gutter" id="worldClocks">
+<!-- Clocks will be generated via JS -->
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        const worldClockData = [
+            { id: 'usa', name: 'USA (NY)', timezone: 'America/New_York', flag: '🇺🇸', bg: 'repeating-linear-gradient(180deg, #B22234 0%, #B22234 10%, #FFFFFF 10%, #FFFFFF 20%)' },
+            { id: 'uk', name: 'UK (LON)', timezone: 'Europe/London', flag: '🇬🇧', bg: 'linear-gradient(135deg, #012169 25%, #C8102E 25%, #C8102E 50%, #012169 50%, #012169 75%, #C8102E 75%, #C8102E 100%)' },
+            { id: 'ger', name: 'GERMANY (FRA)', timezone: 'Europe/Berlin', flag: '🇩🇪', bg: 'linear-gradient(180deg, #000000 33%, #DD0000 33%, #DD0000 66%, #FFCE00 66%)' },
+            { id: 'jap', name: 'JAPAN (TYO)', timezone: 'Asia/Tokyo', flag: '🇯🇵', bg: 'radial-gradient(circle at center, #BC002D 35%, #FFFFFF 35.5%)' },
+            { id: 'bra', name: 'BRAZIL (SAO)', timezone: 'America/Sao_Paulo', flag: '🇧🇷', bg: 'radial-gradient(circle at center, #002776 25%, #FEDF00 25.5%, #FEDF00 45%, #009C3B 45.5%)' },
+            { id: 'ind', name: 'INDIA (DEL)', timezone: 'Asia/Kolkata', flag: '🇮🇳', bg: 'linear-gradient(180deg, #FF9933 33%, #FFFFFF 33%, #FFFFFF 66%, #138808 66%)' },
+            { id: 'chn', name: 'CHINA (PEK)', timezone: 'Asia/Shanghai', flag: '🇨🇳', bg: 'linear-gradient(135deg, #EE1C25 80%, #FFFF00 80.5%, #FFFF00 82%, #EE1C25 82.5%)' },
+            { id: 'fra', name: 'FRANCE (PAR)', timezone: 'Europe/Paris', flag: '🇫🇷', bg: 'linear-gradient(90deg, #002395 33%, #FFFFFF 33%, #FFFFFF 66%, #ED2939 66%)' },
+            { id: 'aus', name: 'AUSTRALIA (SYD)', timezone: 'Australia/Sydney', flag: '🇦🇺', bg: 'linear-gradient(135deg, #012169 40%, #E4002B 40.5%, #E4002B 45%, #012169 45.5%)' },
+            { id: 'can', name: 'CANADA (TOR)', timezone: 'America/Toronto', flag: '🇨🇦', bg: 'linear-gradient(90deg, #FF0000 25%, #FFFFFF 25%, #FFFFFF 75%, #FF0000 75%)' },
+            { id: 'zaf', name: 'SOUTH AFRICA (JNB)', timezone: 'Africa/Johannesburg', flag: '🇿🇦', bg: 'linear-gradient(135deg, #E31837 30%, #007749 30.5%, #007749 60%, #002395 60.5%)' }
+        ];
+
+        const clockContainer = document.getElementById('worldClocks');
+
+        // Generate World Clock Cards
+        worldClockData.forEach((country, index) => {
+            const card = document.createElement('div');
+            // Adding a slight delay to each card's animation so they wave out of sync
+            const animDelay = (index * -1.2) + 's';
+            card.className = 'relative overflow-hidden border border-outline-variant rounded-lg hover:border-primary-container/50 transition-colors group aspect-video sm:aspect-square md:aspect-auto h-32 flex flex-col';
+            card.innerHTML = `
+                <div class="flag-bg" style="background: ${country.bg}; animation-delay: ${animDelay};"></div>
+                <div class="glass-overlay absolute inset-0 z-10 p-4 flex flex-col justify-between group-hover:bg-surface/60 transition-colors duration-300">
+                    <div class="flex items-center justify-between mb-3 border-b border-white/10 pb-2 drop-shadow-md">
+                        <span class="font-label-caps text-label-caps text-white font-bold tracking-wider">${country.name}</span>
+                        <span class="text-xl inline-block drop-shadow-lg">${country.flag}</span>
+                    </div>
+                    <div>
+                        <div class="font-label-mono text-label-mono text-primary-container text-xl sm:text-2xl tracking-tight drop-shadow-md" id="clock-${country.id}">
+                            --:--:--
+                        </div>
+                        <div class="text-label-caps font-label-caps text-white/70 mt-1 drop-shadow-md" id="date-${country.id}">
+                            ----/--/--
+                        </div>
+                    </div>
+                </div>
+            `;
+            clockContainer.appendChild(card);
+        });
+
+        function updateClocks() {
+            const now = new Date();
+            
+            // Precision MS
+            const ms = now.getMilliseconds().toString().padStart(3, '0');
+
+            // Local Time
+            const localHours = now.getHours().toString().padStart(2, '0');
+            const localMinutes = now.getMinutes().toString().padStart(2, '0');
+            const localSeconds = now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('localTimeDisplay').innerHTML = `${localHours}:${localMinutes}:${localSeconds}<span class="text-headline-lg text-primary-container/60 ml-2">.${ms}</span>`;
+
+            // UTC Time
+            const utcHours = now.getUTCHours().toString().padStart(2, '0');
+            const utcMinutes = now.getUTCMinutes().toString().padStart(2, '0');
+            const utcSeconds = now.getUTCSeconds().toString().padStart(2, '0');
+            document.getElementById('utcTimeDisplay').innerHTML = `${utcHours}:${utcMinutes}:${utcSeconds}<span class="text-headline-lg text-white/60 ml-2">.${ms}</span>`;
+
+            // World Clocks
+            worldClockData.forEach(country => {
+                const options = { timeZone: country.timezone, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
+                
+                const dateOptions = { timeZone: country.timezone, year: 'numeric', month: '2-digit', day: '2-digit' };
+                const dateString = new Intl.DateTimeFormat('en-CA', dateOptions).format(now); // YYYY-MM-DD format
+
+                document.getElementById(`clock-${country.id}`).innerHTML = `${timeString}<span class="text-xs text-primary-container/70 ml-1">.${ms.substring(0,2)}</span>`;
+                document.getElementById(`date-${country.id}`).innerText = dateString.replace(/-/g, '/');
+            });
+
+            requestAnimationFrame(updateClocks);
+        }
+
+        // Start the clock loop
+        requestAnimationFrame(updateClocks);
+    </script>
+</body></html>
