@@ -30,6 +30,12 @@ const SIDEBAR_ITEMS: { section: string; items: SidebarItem[] }[] = [
       { to: '/live/alerts', icon: '⚠️', label: 'Sync Alerts' },
     ],
   },
+  {
+    section: 'ABOUT',
+    items: [
+      { to: '/about', icon: '🏛️', label: 'IITTNiF & NTP Infrastructure' },
+    ],
+  },
 ];
 
 function SidebarLink({ to, icon, label, active, onNavigate, collapsed, bright }: SidebarItem & { active: boolean; onNavigate?: () => void; collapsed?: boolean; bright?: boolean }) {

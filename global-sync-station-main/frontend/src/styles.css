@@ -1247,4 +1247,38 @@ select option {
   outline-offset: 2px;
 }
 
+/* ─── About Page ─── */
+.about-card-glow {
+  box-shadow:
+    0 0 32px oklch(0.84 0.13 220 / 0.12),
+    0 8px 32px oklch(0 0 0 / 0.2),
+    inset 0 1px 0 oklch(1 0 0 / 0.06);
+}
+.theme-bright .about-card-glow {
+  box-shadow:
+    0 0 28px rgba(34, 211, 238, 0.14),
+    0 14px 36px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+.about-equip-bar {
+  transform-origin: left;
+  animation: about-bar-grow 2s ease-out forwards;
+}
+@keyframes about-bar-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.about-sync-pulse {
+  box-shadow: 0 0 8px var(--cyan-glow), 0 0 16px color-mix(in srgb, var(--cyan-glow) 50%, transparent);
+}
+.about-timeline-node {
+  box-shadow: 0 0 20px color-mix(in srgb, var(--cyan-glow) 25%, transparent);
+}
+.about-timeline-beam {
+  box-shadow: 0 0 12px var(--cyan-glow), 0 0 24px color-mix(in srgb, var(--cyan-glow) 60%, transparent);
+  filter: blur(0.5px);
+}
+.theme-bright .about-timeline-beam {
+  box-shadow: 0 0 10px #0ea5e9, 0 0 20px rgba(14, 165, 233, 0.4);
+}
 
