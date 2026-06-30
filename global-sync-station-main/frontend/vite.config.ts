@@ -14,8 +14,8 @@ export default defineConfig({
   },
   vite: {
     server: {
-      port: 8080,
-      strictPort: true,
+      port: 8081,
+      strictPort: false,
       proxy: {
         '/api': {
           target: 'http://localhost:8000',
